@@ -14,16 +14,40 @@ export default function CreateSessionScreen({ navigation }: any) {
   const [objectives, setObjectives] = useState<string[]>([]);
   const [materials, setMaterials] = useState<string[]>([]);
 
-  const handleSubmit = () => {
-    const sessionData = {
-      sessionName,
-      drills,
-      objectives,
-      materials,
-    };
-    console.log(sessionData);
-    navigation.goBack();
+ const handleSubmit = async () => {
+  const sessionData = {
+    sessionName,
+    drills,
+    objectives,
+    materials,
   };
+
+  try {
+    const response = await fetch('http://192.168.2.19:3000/api/session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(sessionData),
+    });
+
+    const rawText = await response.text();
+    console.log('Raw response text:', rawText);
+
+    // Try to parse JSON only if response.ok
+    if (response.ok) {
+      const json = JSON.parse(rawText);
+      console.log('Parsed JSON:', json);
+      navigation.goBack();
+    } else {
+      console.error('Server returned error:', rawText);
+    }
+  } catch (err) {
+    console.error('Request failed:', err);
+  }
+};
+
+
 
   return (
     <ScrollView className="flex-1 bg-white px-6 pt-10">
