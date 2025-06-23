@@ -53,19 +53,19 @@ export default function CreateSessionScreen({ navigation }: any) {
           console.log('Error JSON:', errorJson);
 
           if (errorJson.errors && typeof errorJson.errors === 'object') {
-  const newErrors: Record<string, string> = {};
+            const newErrors: Record<string, string> = {};
 
-  for (const field in errorJson.errors) {
-    if (field === '_errors') continue;
-    const fieldErrors = errorJson.errors[field]?._errors;
-    if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
-      newErrors[field] = fieldErrors[0]; // take the first error
-    }
-  }
+            for (const field in errorJson.errors) {
+              if (field === '_errors') continue;
+              const fieldErrors = errorJson.errors[field]?._errors;
+              if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+                newErrors[field] = fieldErrors[0]; // take the first error
+              }
+            }
 
-  console.log('✅ Parsed and setting UI errors:', newErrors);
-  setErrors(newErrors);
-}else if (errorJson.error) {
+            console.log('✅ Parsed and setting UI errors:', newErrors);
+            setErrors(newErrors);
+          } else if (errorJson.error) {
             console.warn('Backend error:', errorJson.error);
           }
         } catch (err) {
@@ -112,15 +112,29 @@ export default function CreateSessionScreen({ navigation }: any) {
       />
       <ErrorText message={errors.sessionName} />
 
-      {/* Drills */}
+      {/* Drills with button */}
       <View style={{ marginBottom: 20 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',borderWidth: 1, borderColor: 'red'  }}>
+          <Text style={{ fontWeight: '600', fontSize: 16, color: '#374151' }}>Drills</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('DrillList')}
+            style={{
+              backgroundColor: '#2563eb', // blue-600
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 6,
+            }}
+          >
+            <Text style={{ color: 'white', fontWeight: '600' }}>View Drills</Text>
+          </TouchableOpacity>
+        </View>
+
         <TagInput label="Drills" tags={drills} setTags={setDrills} />
         <ErrorText message={errors.drills} />
       </View>
 
       {/* Objectives */}
       <View style={{ marginBottom: 20 }}>
-        
         <TagInput label="Objectives" tags={objectives} setTags={setObjectives} />
         <ErrorText message={errors.objectives} />
       </View>

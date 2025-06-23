@@ -15,11 +15,36 @@ datasource db {
 }
 
 model Session {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   sessionName String
-  drills      String[]
-  objectives  String[]
-  materials   String[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  drills      Drill[]   // Relation to Drill model
+  objectives  String[]  // Still as simple array of strings
+  materials   String[]  // Still as simple array of strings
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Drill {
+  id              Int           @id @default(autoincrement())
+  drillName       String
+  duration        Int           // duration in minutes
+  numberOfSets    Int
+  numberOfReps    Int
+  description     String
+  visualReference String?       // optional image/video URL
+  drillCategory   DrillCategory
+  session         Session?      @relation(fields: [sessionId], references: [id]) // a drill is not obligated to belong to a session
+  sessionId       Int?          
+  materials       String[]      // materials specific to the drill
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+enum DrillCategory {
+  passing
+  shooting
+  dribbling
+  defending
+  goalkeeping
+  fitness
 }

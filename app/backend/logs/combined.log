@@ -21,3 +21,7 @@
 {"errors":{"_errors":[],"drills":{"_errors":["At least one drill is required"]},"sessionName":{"_errors":["Session name is required"]}},"level":"warn","message":"Validation errors","timestamp":"2025-06-23T17:27:53.637Z"}
 {"errors":{"_errors":[],"sessionName":{"_errors":["Session name is required"]}},"level":"warn","message":"Validation errors","timestamp":"2025-06-23T17:28:02.578Z"}
 {"level":"info","message":"Session created","sessionId":13,"timestamp":"2025-06-23T17:28:25.157Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-23T17:48:10.064Z"}
+{"errors":{"_errors":[],"drills":{"_errors":["At least one drill is required"]},"objectives":{"_errors":["At least one objective is required"]},"sessionName":{"_errors":["Session name is required"]}},"level":"warn","message":"Validation errors","timestamp":"2025-06-23T17:49:27.044Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-23T18:28:57.912Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-23T18:49:50.416Z"}
