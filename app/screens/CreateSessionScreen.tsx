@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -17,18 +17,24 @@ function ErrorText({ message }: { message?: string }) {
   );
 }
 
-export default function CreateSessionScreen({ navigation }: any) {
+export default function CreateSessionScreen({ navigation, route }: any) {
   const [sessionName, setSessionName] = useState('');
   const [drills, setDrills] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<string[]>([]);
   const [materials, setMaterials] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+  if (route.params?.selectedDrills) {
+    setDrills(route.params.selectedDrills); // this is now array of drill names (strings)
+  }
+}, [route.params?.selectedDrills]);
+
+
+
   const handleSubmit = async () => {
     setErrors({});
     const sessionData = { sessionName, drills, objectives, materials };
-
-    console.log('Submitting sessionData:', sessionData);
 
     try {
       const response = await fetch('http://192.168.2.19:3000/api/session', {
@@ -37,20 +43,16 @@ export default function CreateSessionScreen({ navigation }: any) {
         body: JSON.stringify(sessionData),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response', response);
-
       const text = await response.text();
-      console.log('Raw response text:', text);
+
 
       if (response.ok) {
         const json = JSON.parse(text);
-        console.log('Success response:', json);
+
         navigation.goBack();
       } else {
         try {
           const errorJson = JSON.parse(text);
-          console.log('Error JSON:', errorJson);
 
           if (errorJson.errors && typeof errorJson.errors === 'object') {
             const newErrors: Record<string, string> = {};
@@ -63,10 +65,8 @@ export default function CreateSessionScreen({ navigation }: any) {
               }
             }
 
-            console.log('✅ Parsed and setting UI errors:', newErrors);
             setErrors(newErrors);
           } else if (errorJson.error) {
-            console.warn('Backend error:', errorJson.error);
           }
         } catch (err) {
           console.warn('Error parsing JSON error response', err);
@@ -77,8 +77,6 @@ export default function CreateSessionScreen({ navigation }: any) {
     }
   };
 
-  // Debug log on every render
-  console.log('Rendered errors:', errors);
 
   return (
     <ScrollView className="flex-1 bg-white px-6 pt-10" keyboardShouldPersistTaps="handled">
@@ -113,25 +111,35 @@ export default function CreateSessionScreen({ navigation }: any) {
       <ErrorText message={errors.sessionName} />
 
       {/* Drills with button */}
-      <View style={{ marginBottom: 20 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',borderWidth: 1, borderColor: 'red'  }}>
-          <Text style={{ fontWeight: '600', fontSize: 16, color: '#374151' }}>Drills</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('DrillList')}
-            style={{
-              backgroundColor: '#2563eb', // blue-600
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 6,
-            }}
-          >
-            <Text style={{ color: 'white', fontWeight: '600' }}>View Drills</Text>
-          </TouchableOpacity>
-        </View>
+<View style={{ marginBottom: 20 }}>
+  {/* Label and Button Row */}
+  <View
+    style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    }}
+  >
+    <Text style={{ fontWeight: '600', fontSize: 16, color: '#374151' }}>Drills</Text>
+    <TouchableOpacity
+      onPress={() => navigation.navigate('DrillList')}
+      style={{
+        backgroundColor: '#2563eb', // blue-600
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 6,
+      }}
+    >
+      <Text style={{ color: 'white', fontWeight: '600' }}>View Drills</Text>
+    </TouchableOpacity>
+  </View>
 
-        <TagInput label="Drills" tags={drills} setTags={setDrills} />
-        <ErrorText message={errors.drills} />
-      </View>
+  {/* Drills TagInput */}
+  <TagInput label="Selected Drills" tags={drills} setTags={setDrills} />
+  <ErrorText message={errors.drills} />
+</View>
+
 
       {/* Objectives */}
       <View style={{ marginBottom: 20 }}>
@@ -164,13 +172,6 @@ export default function CreateSessionScreen({ navigation }: any) {
           Save Session
         </Text>
       </TouchableOpacity>
-
-      {/* Debug: show error object */}
-      <View style={{ marginVertical: 20 }}>
-        <Text style={{ fontSize: 12, color: 'gray' }}>
-          DEBUG ERRORS: {JSON.stringify(errors)}
-        </Text>
-      </View>
     </ScrollView>
   );
 }

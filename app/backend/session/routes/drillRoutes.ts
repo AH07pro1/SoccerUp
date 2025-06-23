@@ -1,5 +1,7 @@
 import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import logger from '../../logger';
+import drillSchema from '../drillSchema';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -32,42 +34,31 @@ router.get('/session/:sessionId', async (req: Request, res: Response): Promise<a
 });
 
 // POST create a new drill
-router.post('/', async (req: Request, res: Response): Promise<any> =>  {
-  const {
-    drillName,
-    duration,
-    materials,
-    visualReference,
-    drillCategory,
-    numberOfSets,
-    numberOfReps,
-    sessionId,
-    description,
-  } = req.body;
 
-  if (!drillName || !duration || !drillCategory || !numberOfSets || !numberOfReps || !sessionId || !description) {
-    return res.status(400).json({ error: 'Missing required fields' });
+router.post('/', async (req: Request, res: Response): Promise<any> => {
+  logger.info('📥 Received drill creation request body:', { body: req.body });
+
+  const result = drillSchema.safeParse(req.body);
+
+  if (!result.success) {
+    logger.warn('❌ Drill validation failed', { errors: result.error.format() });
+    return res.status(400).json({ errors: result.error.format() });
   }
+
+  const validatedData = result.data;
 
   try {
     const newDrill = await prisma.drill.create({
-      data: {
-        drillName,
-        duration,
-        materials,
-        visualReference,
-        drillCategory,
-        numberOfSets,
-        numberOfReps,
-        sessionId,
-        description,
-      },
+      data: validatedData,
     });
+
+    logger.info('✅ Drill created successfully', { drillId: newDrill.id });
     res.status(201).json(newDrill);
   } catch (err) {
-    console.error(err);
+    logger.error('❌ Failed to create drill', { error: err });
     res.status(500).json({ error: 'Failed to create drill' });
   }
 });
+
 
 export default router;
