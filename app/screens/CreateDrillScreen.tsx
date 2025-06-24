@@ -49,6 +49,7 @@ export default function CreateDrillScreen({ navigation }: any) {
       materials: materials ? materials.split(',').map((m) => m.trim()) : [],
       description,
       visualReference: visualReference || null,
+      createdByUser: true, // assuming this is always true for user-created drills
     };
 
     try {

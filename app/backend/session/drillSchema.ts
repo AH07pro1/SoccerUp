@@ -27,5 +27,6 @@ const drillSchema = z.object({
   materials: z.array(z.string()).optional(),
   description: z.string().min(1, "Description is required"),
   visualReference: z.string().url().optional().nullable(),
+  createdByUser: z.boolean().default(false)
 });
 export default drillSchema;

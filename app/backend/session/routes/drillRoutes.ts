@@ -49,8 +49,19 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
 
   try {
     const newDrill = await prisma.drill.create({
-      data: validatedData,
-    });
+  data: {
+    drillName: validatedData.drillName,
+    duration: validatedData.duration,
+    numberOfSets: validatedData.numberOfSets,
+    numberOfReps: validatedData.numberOfReps,
+    description: validatedData.description,
+    visualReference: validatedData.visualReference,
+    drillCategory: validatedData.drillCategory,
+    materials: validatedData.materials,
+    createdByUser: validatedData.createdByUser,
+  },
+});
+
 
     logger.info('✅ Drill created successfully', { drillId: newDrill.id });
     res.status(201).json(newDrill);

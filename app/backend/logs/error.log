@@ -1,0 +1,2 @@
+{"error":{"clientVersion":"6.10.1","code":"P2011","meta":{"constraint":["createdByUser"],"modelName":"Drill"},"name":"PrismaClientKnownRequestError"},"level":"error","message":"❌ Failed to create drill","timestamp":"2025-06-23T23:35:43.556Z"}
+{"error":{"clientVersion":"6.10.1","code":"P2011","meta":{"constraint":["createdByUser"],"modelName":"Drill"},"name":"PrismaClientKnownRequestError"},"level":"error","message":"❌ Failed to create drill","timestamp":"2025-06-23T23:35:54.513Z"}
