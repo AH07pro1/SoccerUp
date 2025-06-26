@@ -100,3 +100,7 @@
 {"errors":{"_errors":[],"description":{"_errors":["Description is required"]},"drillName":{"_errors":["Drill name is required"]},"duration":{"_errors":["Duration must be greater than 0"]},"numberOfReps":{"_errors":["Number of reps must be at least 1"]},"numberOfSets":{"_errors":["Number of sets must be at least 1"]}},"level":"warn","message":"❌ Drill validation failed","timestamp":"2025-06-26T16:29:51.977Z"}
 {"level":"info","message":"Logger initialized","timestamp":"2025-06-26T18:04:17.337Z"}
 {"errors":{"_errors":[],"objectives":{"_errors":["At least one objective is required"]},"sessionName":{"_errors":["Session name is required"]}},"level":"warn","message":"Validation errors","timestamp":"2025-06-26T18:34:33.683Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-26T19:03:49.521Z"}
+{"errors":{"_errors":[],"objectives":{"_errors":["At least one objective is required"]}},"level":"warn","message":"Validation errors","timestamp":"2025-06-26T19:04:27.289Z"}
+{"errors":{"_errors":[],"drills":{"_errors":["At least one drill is required"]},"objectives":{"_errors":["At least one objective is required"]},"sessionName":{"_errors":["Session name is required"]}},"level":"warn","message":"Validation errors","timestamp":"2025-06-26T19:49:02.116Z"}
+{"errors":{"_errors":[],"drills":{"_errors":["At least one drill is required"]},"objectives":{"_errors":["At least one objective is required"]},"sessionName":{"_errors":["Session name is required"]}},"level":"warn","message":"Validation errors","timestamp":"2025-06-26T19:50:00.508Z"}
