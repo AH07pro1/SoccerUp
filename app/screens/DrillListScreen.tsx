@@ -68,7 +68,14 @@ export default function DrillListScreen({ navigation, route }: any) {
   const handleOkPress = () => {
     const selectedDrillObjects = drills.filter((d) => selectedDrills.includes(d.id));
     const drillNames = selectedDrillObjects.map((d) => d.drillName);
-    navigation.navigate('CreateSession', { selectedDrills: drillNames });
+    navigation.navigate('CreateSession', {
+  selectedDrills: drillNames,
+  sessionName: route.params?.sessionName ?? '',
+  objectives: route.params?.objectives ?? [],
+  materials: route.params?.materials ?? [],
+  currentCard: 1, // Or whatever step you want to resume at
+});
+
   };
 
   const filteredAndSortedDrills = drills
@@ -182,14 +189,16 @@ export default function DrillListScreen({ navigation, route }: any) {
 
               {/* Checkbox */}
               <TouchableOpacity
-                onPress={() => toggleSelectDrill(item.id)}
-                className={`w-6 h-6 rounded border-2 ${
-                  selected ? 'bg-green-600 border-green-600' : 'border-gray-400 bg-white'
-                } flex items-center justify-center`}
-                activeOpacity={0.7}
-              >
-                {selected && <CheckIcon size={20} color="white" />}
-              </TouchableOpacity>
+  onPress={() => toggleSelectDrill(item.id)}
+  className={`w-6 h-6 rounded border-2 ${
+    selected ? 'bg-green-600 border-green-600' : 'border-gray-400 bg-white'
+  } flex items-center justify-center`}
+  activeOpacity={0.7}
+  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+>
+  {selected && <CheckIcon size={20} color="white" />}
+</TouchableOpacity>
+
             </View>
           );
         }}

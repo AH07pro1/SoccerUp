@@ -1,42 +1,63 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
+  Animated,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from 'react-native';
 import TagInput from '../components/forms/TagInput';
 
 function ErrorText({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <Text
-      style={{
-        color: 'white',
-        backgroundColor: 'red',
-        padding: 6,
-        marginTop: 4,
-        marginBottom: 16,
-      }}
-    >
+    <Text className="text-sm text-white bg-red-500 px-3 py-2 rounded my-2">
       {message}
     </Text>
   );
 }
 
+const totalCards = 4;
+
 export default function CreateSessionScreen({ navigation, route }: any) {
-  const [sessionName, setSessionName] = useState('');
-  const [drills, setDrills] = useState<string[]>([]);
-  const [objectives, setObjectives] = useState<string[]>([]);
-  const [materials, setMaterials] = useState<string[]>([]);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Initialize states from route.params or defaults
+  const [sessionName, setSessionName] = useState(route.params?.sessionName ?? '');
+  const [drills, setDrills] = useState<string[]>(route.params?.selectedDrills ?? []);
+  const [objectives, setObjectives] = useState<string[]>(route.params?.objectives ?? []);
+  const [materials, setMaterials] = useState<string[]>(route.params?.materials ?? []);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // IMPORTANT: also track currentCard state, initialized from params or 0
+  const [currentCard, setCurrentCard] = useState(route.params?.currentCard ?? 0);
+
+  // Sync when route params change (for when navigating back)
   useEffect(() => {
-    if (route.params?.selectedDrills) {
-      setDrills(route.params.selectedDrills); // this is now array of drill names (strings)
-    }
-  }, [route.params?.selectedDrills]);
+    if (route.params?.sessionName !== undefined) setSessionName(route.params.sessionName);
+    if (route.params?.selectedDrills) setDrills(route.params.selectedDrills);
+    if (route.params?.objectives) setObjectives(route.params.objectives);
+    if (route.params?.materials) setMaterials(route.params.materials);
+    if (route.params?.currentCard !== undefined) setCurrentCard(route.params.currentCard);
+  }, [
+    route.params?.sessionName,
+    route.params?.selectedDrills,
+    route.params?.objectives,
+    route.params?.materials,
+    route.params?.currentCard,
+  ]);
+
+  const goToCard = (index: number) => {
+    if (index < 0 || index >= totalCards) return;
+    Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+      setCurrentCard(index);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    });
+  };
 
   const removeDrill = (tagToRemove: string) => {
     setDrills((prev) => prev.filter((tag) => tag !== tagToRemove));
@@ -56,208 +77,173 @@ export default function CreateSessionScreen({ navigation, route }: any) {
       const text = await response.text();
 
       if (response.ok) {
-        const json = JSON.parse(text);
-
+        Alert.alert('Success', 'Session created!');
         navigation.goBack();
       } else {
-        try {
-          const errorJson = JSON.parse(text);
-
-          if (errorJson.errors && typeof errorJson.errors === 'object') {
-            const newErrors: Record<string, string> = {};
-
-            for (const field in errorJson.errors) {
-              if (field === '_errors') continue;
-              const fieldErrors = errorJson.errors[field]?._errors;
-              if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
-                newErrors[field] = fieldErrors[0]; // take the first error
-              }
-            }
-
-            setErrors(newErrors);
-          } else if (errorJson.error) {
-            // handle generic error if needed
+        const errorJson = JSON.parse(text);
+        const newErrors: Record<string, string> = {};
+        for (const field in errorJson.errors) {
+          const fieldErrors = errorJson.errors[field]?._errors;
+          if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+            newErrors[field] = fieldErrors[0];
           }
-        } catch (err) {
-          console.warn('Error parsing JSON error response', err);
         }
+        setErrors(newErrors);
       }
     } catch (err) {
-      console.warn('Network or fetch error:', err);
+      Alert.alert('Error', 'Network or server issue');
+    }
+  };
+
+  const renderCard = () => {
+    switch (currentCard) {
+      case 0:
+        return (
+          <View className="bg-gray-100 p-4 rounded-2xl mb-6">
+            <Text className="text-lg font-semibold text-gray-800 mb-2">Session Basics</Text>
+            <Text className="text-sm text-gray-600 mb-1">Session Name</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-2 bg-white"
+              placeholder="e.g. Passing Session"
+              value={sessionName}
+              onChangeText={setSessionName}
+              returnKeyType="next"
+              onSubmitEditing={() => goToCard(1)}
+              blurOnSubmit={false}
+            />
+            <ErrorText message={errors.sessionName} />
+          </View>
+        );
+      case 1:
+  return (
+    <View className="bg-gray-100 p-4 rounded-2xl mb-6">
+      <Text className="text-lg font-semibold text-gray-800 mb-4">Select Drills</Text>
+
+      <TouchableOpacity
+        onPress={() =>
+          navigation.navigate('DrillList', {
+            sessionName,
+            selectedDrills: drills,
+            objectives,
+            materials,
+            currentCard,
+          })
+        }
+        className="bg-blue-600 py-3 rounded-lg mb-4"
+      >
+        <Text className="text-white text-center font-semibold text-base">Choose Drills</Text>
+      </TouchableOpacity>
+
+      {drills.length > 0 ? (
+        <View>
+          {drills.map((tag, idx) => (
+            <View
+              key={idx}
+              className="flex-row justify-between items-center bg-green-500 px-4 py-3 rounded-lg mb-3" // Added mb-3 here
+            >
+              <Text className="text-white font-semibold text-base">{tag}</Text>
+              <TouchableOpacity onPress={() => removeDrill(tag)}>
+                <Text className="text-white font-bold text-xl">×</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <Text className="text-gray-500 text-sm">No drills selected</Text>
+      )}
+      <ErrorText message={errors.drills} />
+    </View>
+  );
+
+
+      case 2:
+        return (
+          <View className="bg-gray-100 p-4 rounded-2xl mb-6">
+            <Text className="text-lg font-semibold text-gray-800 mb-2">Objectives & Materials</Text>
+            <TagInput label="Objectives" tags={objectives} setTags={setObjectives} />
+            <ErrorText message={errors.objectives} />
+            <View className="mt-4">
+              <TagInput label="Materials" tags={materials} setTags={setMaterials} />
+              <ErrorText message={errors.materials} />
+            </View>
+          </View>
+        );
+      case 3:
+        return (
+          <View className="bg-gray-100 p-4 rounded-2xl mb-6">
+            <Text className="text-lg font-semibold text-gray-800 mb-4">Session Overview</Text>
+            <Text className="text-gray-700 mb-1">Name: {sessionName || 'Not Set'}</Text>
+            <Text className="text-gray-700 mb-1">Drills: {drills.join(', ') || 'None'}</Text>
+            <Text className="text-gray-700 mb-1">
+              Objectives: {objectives.join(', ') || 'None'}
+            </Text>
+            <Text className="text-gray-700 mb-1">
+              Materials: {materials.join(', ') || 'None'}
+            </Text>
+          </View>
+        );
+      default:
+        return null;
     }
   };
 
   return (
-    <ScrollView
-      className="flex-1 bg-white px-6 pt-10"
-      keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView
+      className="flex-1 bg-white px-5 pt-10"
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={80}
     >
-      <Text
-        style={{
-          fontSize: 28,
-          fontWeight: 'bold',
-          textAlign: 'center',
-          color: '#22c55e',
-          marginBottom: 32,
-        }}
-      >
-        Create a New Session
-      </Text>
-
-      {/* Session Name */}
-      <Text
-        style={{
-          fontWeight: '600',
-          marginBottom: 6,
-          fontSize: 16,
-          color: '#374151',
-        }}
-      >
-        Session Name
-      </Text>
-      <TextInput
-        style={{
-          borderWidth: 1,
-          borderColor: errors.sessionName ? 'red' : '#d1d5db',
-          borderRadius: 8,
-          padding: 12,
-          marginBottom: errors.sessionName ? 0 : 16,
-        }}
-        placeholder="Enter session name"
-        value={sessionName}
-        onChangeText={setSessionName}
-      />
-      <ErrorText message={errors.sessionName} />
-
-      {/* Drills with button */}
-      <View style={{ marginBottom: 20 }}>
-        {/* Label and Button Row */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 8,
-          }}
-        >
-          <Text
-            style={{ fontWeight: '600', fontSize: 16, color: '#374151' }}
-          >
-            Drills
-          </Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('DrillList')}
-            style={{
-              backgroundColor: '#2563eb', // blue-600
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 6,
-            }}
-          >
-            <Text style={{ color: 'white', fontWeight: '600' }}>
-              View Drills
-            </Text>
-          </TouchableOpacity>
+      {/* Progress Bar */}
+      <View className="w-full mb-6">
+        <View className="bg-gray-200 rounded-full h-4">
+          <View
+            style={{ width: `${((currentCard + 1) / totalCards) * 100}%` }}
+            className="bg-green-500 h-4 rounded-full"
+          />
         </View>
+        <Text className="text-sm text-gray-500 mt-2 text-center">
+          Step {currentCard + 1} of {totalCards}
+        </Text>
+      </View>
 
-        {/* Drills read-only tags with remove button */}
-        <View>
-          <Text
-            style={{
-              color: '#374151',
-              marginBottom: 8,
-              fontWeight: '600',
-            }}
-          >
-            Selected Drills
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            {drills.length > 0 ? (
-              drills.map((tag, idx) => (
-                <View
-                  key={idx}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: '#22c55e',
-                    paddingHorizontal: 16,
-                    paddingVertical: 10,
-                    borderRadius: 20,
-                    marginRight: 8,
-                    marginBottom: 8,
-                    minWidth: 100,
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Text style={{ color: 'white', fontWeight: '600' }}>{tag}</Text>
-                  <TouchableOpacity
-                    onPress={() => removeDrill(tag)}
-                    style={{
-                      marginLeft: 12,
-                      padding: 4,
-                    }}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Text
-                      style={{
-                        color: 'white',
-                        fontWeight: 'bold',
-                        fontSize: 16,
-                        lineHeight: 16,
-                      }}
-                    >
-                      ×
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ))
-            ) : (
-              <Text style={{ color: '#6b7280' }}>No drills selected</Text>
+      <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
+        <Text className="text-3xl font-bold text-green-600 mb-6 text-center">
+          Create a Session
+        </Text>
+
+        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {renderCard()}
+
+          <View className="flex-row justify-between">
+            {currentCard > 0 && (
+              <TouchableOpacity
+                onPress={() => goToCard(currentCard - 1)}
+                className="bg-gray-300 px-6 py-3 rounded-lg"
+              >
+                <Text className="text-gray-700 font-semibold">Back</Text>
+              </TouchableOpacity>
+            )}
+
+            {currentCard < totalCards - 1 && (
+              <TouchableOpacity
+                onPress={() => goToCard(currentCard + 1)}
+                className="bg-green-600 px-6 py-3 rounded-lg"
+              >
+                <Text className="text-white font-semibold">Next</Text>
+              </TouchableOpacity>
+            )}
+
+            {currentCard === totalCards - 1 && (
+              <TouchableOpacity
+                onPress={handleSubmit}
+                className="bg-green-600 px-6 py-3 rounded-lg flex-1 ml-2"
+              >
+                <Text className="text-white font-semibold text-center">Save Session</Text>
+              </TouchableOpacity>
             )}
           </View>
-        </View>
-
-        <ErrorText message={errors.drills} />
-      </View>
-
-      {/* Objectives */}
-      <View style={{ marginBottom: 20 }}>
-        <TagInput label="Objectives" tags={objectives} setTags={setObjectives} />
-        <ErrorText message={errors.objectives} />
-      </View>
-
-      {/* Materials */}
-      <View style={{ marginBottom: 32 }}>
-        <TagInput label="Required Materials" tags={materials} setTags={setMaterials} />
-      </View>
-
-      {/* Submit Button */}
-      <TouchableOpacity
-        style={{
-          backgroundColor: '#22c55e',
-          paddingVertical: 16,
-          borderRadius: 9999,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.3,
-          shadowRadius: 4,
-          elevation: 3,
-          marginBottom: 48,
-        }}
-        activeOpacity={0.8}
-        onPress={handleSubmit}
-      >
-        <Text
-          style={{
-            color: 'white',
-            textAlign: 'center',
-            fontSize: 18,
-            fontWeight: '600',
-          }}
-        >
-          Save Session
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
+        </ScrollView>
+      </Animated.View>
+    </KeyboardAvoidingView>
   );
 }
