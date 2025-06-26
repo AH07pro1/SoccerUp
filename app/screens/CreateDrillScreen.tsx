@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
   Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -12,34 +15,54 @@ import { Picker } from '@react-native-picker/picker';
 function ErrorText({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <Text
-      style={{
-        color: 'white',
-        backgroundColor: 'red',
-        padding: 6,
-        marginTop: 4,
-        marginBottom: 16,
-      }}
-    >
+    <Text className="text-sm text-white bg-red-500 px-3 py-2 rounded my-2">
       {message}
     </Text>
   );
 }
 
+const totalCards = 3;
+
 export default function CreateDrillScreen({ navigation }: any) {
+  const [currentCard, setCurrentCard] = useState(0);
+
   const [drillName, setDrillName] = useState('');
   const [duration, setDuration] = useState('');
+  const [drillCategory, setDrillCategory] = useState('passing');
+
   const [numberOfSets, setNumberOfSets] = useState('');
   const [numberOfReps, setNumberOfReps] = useState('');
-  const [drillCategory, setDrillCategory] = useState('passing');
+
   const [materials, setMaterials] = useState('');
-  const [description, setDescription] = useState('');
   const [visualReference, setVisualReference] = useState('');
+  const [description, setDescription] = useState('');
+
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Animate fade out, change card, then fade in
+  const goToCard = (index: number) => {
+    if (index < 0 || index >= totalCards) return;
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setCurrentCard(index);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
+  // Automatically go to next card when last input on current card is done
+  // We listen for onSubmitEditing on last inputs
 
   const handleSubmit = async () => {
     setErrors({});
-
     const bodyData = {
       drillName,
       duration: Number(duration),
@@ -49,7 +72,7 @@ export default function CreateDrillScreen({ navigation }: any) {
       materials: materials ? materials.split(',').map((m) => m.trim()) : [],
       description,
       visualReference: visualReference || null,
-      createdByUser: true, // assuming this is always true for user-created drills
+      createdByUser: true,
     };
 
     try {
@@ -75,7 +98,6 @@ export default function CreateDrillScreen({ navigation }: any) {
             setErrors(parsedErrors);
             return;
           }
-
           const errorMessage = errorData.error || 'Failed to create drill';
           Alert.alert('Error', errorMessage);
         } catch {
@@ -91,103 +113,183 @@ export default function CreateDrillScreen({ navigation }: any) {
     }
   };
 
+  // Render each card
+  const renderCard = () => {
+    switch (currentCard) {
+      case 0:
+        return (
+          <View className="bg-gray-100 p-4 rounded-2xl mb-6">
+            <Text className="text-lg font-semibold text-gray-800 mb-2">Basics</Text>
+
+            <Text className="text-sm text-gray-600 mb-1">Drill Name</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-2 bg-white"
+              placeholder="e.g. Cone Weave"
+              value={drillName}
+              onChangeText={setDrillName}
+              returnKeyType="next"
+              onSubmitEditing={() => goToCard(1)}
+              blurOnSubmit={false}
+            />
+            <ErrorText message={errors.drillName} />
+
+            <Text className="text-sm text-gray-600 mb-1">Duration (min)</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-2 bg-white"
+              placeholder="e.g. 5"
+              keyboardType="numeric"
+              value={duration}
+              onChangeText={setDuration}
+              returnKeyType="next"
+              onSubmitEditing={() => goToCard(1)}
+              blurOnSubmit={false}
+            />
+            <ErrorText message={errors.duration} />
+
+            <Text className="text-sm text-gray-600 mb-1">Category</Text>
+            <Picker
+              selectedValue={drillCategory}
+              onValueChange={setDrillCategory}
+              style={{ marginBottom: 8 }}
+            >
+              <Picker.Item label="Passing" value="passing" />
+              <Picker.Item label="Shooting" value="shooting" />
+              <Picker.Item label="Dribbling" value="dribbling" />
+              <Picker.Item label="Defending" value="defending" />
+              <Picker.Item label="Goalkeeping" value="goalkeeping" />
+              <Picker.Item label="Fitness" value="fitness" />
+            </Picker>
+          </View>
+        );
+
+      case 1:
+        return (
+          <View className="bg-gray-100 p-4 rounded-2xl mb-6">
+            <Text className="text-lg font-semibold text-gray-800 mb-2">Repetitions</Text>
+
+            <Text className="text-sm text-gray-600 mb-1">Number of Sets</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-2 bg-white"
+              placeholder="e.g. 3"
+              keyboardType="numeric"
+              value={numberOfSets}
+              onChangeText={setNumberOfSets}
+              returnKeyType="next"
+              onSubmitEditing={() => goToCard(2)}
+              blurOnSubmit={false}
+            />
+            <ErrorText message={errors.numberOfSets} />
+
+            <Text className="text-sm text-gray-600 mb-1">Number of Reps</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-2 bg-white"
+              placeholder="e.g. 10"
+              keyboardType="numeric"
+              value={numberOfReps}
+              onChangeText={setNumberOfReps}
+              returnKeyType="done"
+              onSubmitEditing={() => goToCard(2)}
+            />
+            <ErrorText message={errors.numberOfReps} />
+          </View>
+        );
+
+      case 2:
+        return (
+          <View className="bg-gray-100 p-4 rounded-2xl mb-6">
+            <Text className="text-lg font-semibold text-gray-800 mb-2">Details</Text>
+
+            <Text className="text-sm text-gray-600 mb-1">Materials (comma separated)</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-2 bg-white"
+              placeholder="e.g. cones, balls"
+              value={materials}
+              onChangeText={setMaterials}
+            />
+
+            <Text className="text-sm text-gray-600 mb-1">Visual Reference (optional)</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-2 bg-white"
+              placeholder="https://youtube.com/..."
+              value={visualReference}
+              onChangeText={setVisualReference}
+            />
+
+            <Text className="text-sm text-gray-600 mb-1">Description</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 bg-white mb-2"
+              placeholder="Describe the drill step-by-step"
+              multiline
+              numberOfLines={4}
+              value={description}
+              onChangeText={setDescription}
+              returnKeyType="done"
+              onSubmitEditing={handleSubmit}
+            />
+            <ErrorText message={errors.description} />
+          </View>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
-    <ScrollView className="flex-1 bg-white px-6 pt-10">
-      <Text className="text-2xl font-bold text-green-600 mb-8 text-center">
-        Create a New Drill
-      </Text>
-
-      <Text className="text-gray-700 font-semibold mb-1">Drill Name*</Text>
-      <TextInput
-        className="border border-gray-300 rounded-lg p-3"
-        placeholder="Enter drill name"
-        value={drillName}
-        onChangeText={setDrillName}
-      />
-      <ErrorText message={errors.drillName} />
-
-      <Text className="text-gray-700 font-semibold mb-1">Duration (minutes)*</Text>
-      <TextInput
-        className="border border-gray-300 rounded-lg p-3"
-        placeholder="Enter duration"
-        keyboardType="numeric"
-        value={duration}
-        onChangeText={setDuration}
-      />
-      <ErrorText message={errors.duration} />
-
-      <Text className="text-gray-700 font-semibold mb-1">Number of Sets*</Text>
-      <TextInput
-        className="border border-gray-300 rounded-lg p-3"
-        placeholder="Enter sets"
-        keyboardType="numeric"
-        value={numberOfSets}
-        onChangeText={setNumberOfSets}
-      />
-      <ErrorText message={errors.numberOfSets} />
-
-      <Text className="text-gray-700 font-semibold mb-1">Number of Reps*</Text>
-      <TextInput
-        className="border border-gray-300 rounded-lg p-3"
-        placeholder="Enter reps"
-        keyboardType="numeric"
-        value={numberOfReps}
-        onChangeText={setNumberOfReps}
-      />
-      <ErrorText message={errors.numberOfReps} />
-
-      <Text className="text-gray-700 font-semibold mb-1">Drill Category*</Text>
-      <Picker
-        selectedValue={drillCategory}
-        onValueChange={(itemValue) => setDrillCategory(itemValue)}
-      >
-        <Picker.Item label="Passing" value="passing" />
-        <Picker.Item label="Shooting" value="shooting" />
-        <Picker.Item label="Dribbling" value="dribbling" />
-        <Picker.Item label="Defending" value="defending" />
-        <Picker.Item label="Goalkeeping" value="goalkeeping" />
-        <Picker.Item label="Fitness" value="fitness" />
-      </Picker>
-      <ErrorText message={errors.drillCategory} />
-
-      <Text className="text-gray-700 font-semibold mb-1">Materials (comma separated)</Text>
-      <TextInput
-        className="border border-gray-300 rounded-lg p-3 mb-4"
-        placeholder="e.g. cones, balls"
-        value={materials}
-        onChangeText={setMaterials}
-      />
-      <ErrorText message={errors.materials} />
-
-      <Text className="text-gray-700 font-semibold mb-1">Visual Reference Link</Text>
-      <TextInput
-        className="border border-gray-300 rounded-lg p-3 mb-4"
-        placeholder="https://example.com/video"
-        value={visualReference}
-        onChangeText={setVisualReference}
-      />
-      <ErrorText message={errors.visualReference} />
-
-      <Text className="text-gray-700 font-semibold mb-1">Description*</Text>
-      <TextInput
-        className="border border-gray-300 rounded-lg p-3 mb-6"
-        placeholder="Enter drill description"
-        multiline
-        numberOfLines={4}
-        value={description}
-        onChangeText={setDescription}
-      />
-      <ErrorText message={errors.description} />
-
-      <TouchableOpacity
-        className="bg-green-600 rounded-full py-4 mb-10"
-        activeOpacity={0.8}
-        onPress={handleSubmit}
-      >
-        <Text className="text-white text-center text-lg font-semibold">
-          Save Drill
+    <KeyboardAvoidingView
+      behavior={Platform.select({ ios: 'padding', android: undefined })}
+      className="flex-1 bg-white px-5 pt-10"
+      keyboardVerticalOffset={80}
+    >
+      {/* Progress Indicator */}
+      <View className="w-full mb-6">
+        <View className="bg-gray-200 rounded-full h-4">
+          <View
+            style={{ width: `${((currentCard + 1) / totalCards) * 100}%` }}
+            className="bg-green-500 h-4 rounded-full"
+          />
+        </View>
+        <Text className="text-sm text-gray-500 mt-2 text-center">
+          Step {currentCard + 1} of {totalCards}
         </Text>
-      </TouchableOpacity>
-    </ScrollView>
+      </View>
+
+      <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
+        <Text className="text-3xl font-bold text-green-600 mb-6 text-center">New Drill</Text>
+
+        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {renderCard()}
+
+          <View className="flex-row justify-between">
+            {currentCard > 0 && (
+              <TouchableOpacity
+                onPress={() => goToCard(currentCard - 1)}
+                className="bg-gray-300 px-6 py-3 rounded-lg"
+              >
+                <Text className="text-gray-700 font-semibold">Back</Text>
+              </TouchableOpacity>
+            )}
+
+            {currentCard < totalCards - 1 && (
+              <TouchableOpacity
+                onPress={() => goToCard(currentCard + 1)}
+                className="bg-green-600 px-6 py-3 rounded-lg"
+              >
+                <Text className="text-white font-semibold">Next</Text>
+              </TouchableOpacity>
+            )}
+
+            {currentCard === totalCards - 1 && (
+              <TouchableOpacity
+                onPress={handleSubmit}
+                className="bg-green-600 px-6 py-3 rounded-lg flex-1 ml-2"
+              >
+                <Text className="text-white font-semibold text-center">Save Drill</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </ScrollView>
+      </Animated.View>
+    </KeyboardAvoidingView>
   );
 }
