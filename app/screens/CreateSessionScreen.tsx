@@ -11,7 +11,15 @@ import TagInput from '../components/forms/TagInput';
 function ErrorText({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <Text style={{ color: 'white', backgroundColor: 'red', padding: 6, marginTop: 4, marginBottom: 16 }}>
+    <Text
+      style={{
+        color: 'white',
+        backgroundColor: 'red',
+        padding: 6,
+        marginTop: 4,
+        marginBottom: 16,
+      }}
+    >
       {message}
     </Text>
   );
@@ -25,12 +33,14 @@ export default function CreateSessionScreen({ navigation, route }: any) {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-  if (route.params?.selectedDrills) {
-    setDrills(route.params.selectedDrills); // this is now array of drill names (strings)
-  }
-}, [route.params?.selectedDrills]);
+    if (route.params?.selectedDrills) {
+      setDrills(route.params.selectedDrills); // this is now array of drill names (strings)
+    }
+  }, [route.params?.selectedDrills]);
 
-
+  const removeDrill = (tagToRemove: string) => {
+    setDrills((prev) => prev.filter((tag) => tag !== tagToRemove));
+  };
 
   const handleSubmit = async () => {
     setErrors({});
@@ -44,7 +54,6 @@ export default function CreateSessionScreen({ navigation, route }: any) {
       });
 
       const text = await response.text();
-
 
       if (response.ok) {
         const json = JSON.parse(text);
@@ -67,6 +76,7 @@ export default function CreateSessionScreen({ navigation, route }: any) {
 
             setErrors(newErrors);
           } else if (errorJson.error) {
+            // handle generic error if needed
           }
         } catch (err) {
           console.warn('Error parsing JSON error response', err);
@@ -77,9 +87,11 @@ export default function CreateSessionScreen({ navigation, route }: any) {
     }
   };
 
-
   return (
-    <ScrollView className="flex-1 bg-white px-6 pt-10" keyboardShouldPersistTaps="handled">
+    <ScrollView
+      className="flex-1 bg-white px-6 pt-10"
+      keyboardShouldPersistTaps="handled"
+    >
       <Text
         style={{
           fontSize: 28,
@@ -93,7 +105,14 @@ export default function CreateSessionScreen({ navigation, route }: any) {
       </Text>
 
       {/* Session Name */}
-      <Text style={{ fontWeight: '600', marginBottom: 6, fontSize: 16, color: '#374151' }}>
+      <Text
+        style={{
+          fontWeight: '600',
+          marginBottom: 6,
+          fontSize: 16,
+          color: '#374151',
+        }}
+      >
         Session Name
       </Text>
       <TextInput
@@ -111,35 +130,95 @@ export default function CreateSessionScreen({ navigation, route }: any) {
       <ErrorText message={errors.sessionName} />
 
       {/* Drills with button */}
-<View style={{ marginBottom: 20 }}>
-  {/* Label and Button Row */}
-  <View
-    style={{
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 8,
-    }}
-  >
-    <Text style={{ fontWeight: '600', fontSize: 16, color: '#374151' }}>Drills</Text>
-    <TouchableOpacity
-      onPress={() => navigation.navigate('DrillList')}
-      style={{
-        backgroundColor: '#2563eb', // blue-600
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 6,
-      }}
-    >
-      <Text style={{ color: 'white', fontWeight: '600' }}>View Drills</Text>
-    </TouchableOpacity>
-  </View>
+      <View style={{ marginBottom: 20 }}>
+        {/* Label and Button Row */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 8,
+          }}
+        >
+          <Text
+            style={{ fontWeight: '600', fontSize: 16, color: '#374151' }}
+          >
+            Drills
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('DrillList')}
+            style={{
+              backgroundColor: '#2563eb', // blue-600
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 6,
+            }}
+          >
+            <Text style={{ color: 'white', fontWeight: '600' }}>
+              View Drills
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-  {/* Drills TagInput */}
-  <TagInput label="Selected Drills" tags={drills} setTags={setDrills} />
-  <ErrorText message={errors.drills} />
-</View>
+        {/* Drills read-only tags with remove button */}
+        <View>
+          <Text
+            style={{
+              color: '#374151',
+              marginBottom: 8,
+              fontWeight: '600',
+            }}
+          >
+            Selected Drills
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+            {drills.length > 0 ? (
+              drills.map((tag, idx) => (
+                <View
+                  key={idx}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: '#22c55e',
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: 20,
+                    marginRight: 8,
+                    marginBottom: 8,
+                    minWidth: 100,
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: '600' }}>{tag}</Text>
+                  <TouchableOpacity
+                    onPress={() => removeDrill(tag)}
+                    style={{
+                      marginLeft: 12,
+                      padding: 4,
+                    }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Text
+                      style={{
+                        color: 'white',
+                        fontWeight: 'bold',
+                        fontSize: 16,
+                        lineHeight: 16,
+                      }}
+                    >
+                      ×
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))
+            ) : (
+              <Text style={{ color: '#6b7280' }}>No drills selected</Text>
+            )}
+          </View>
+        </View>
 
+        <ErrorText message={errors.drills} />
+      </View>
 
       {/* Objectives */}
       <View style={{ marginBottom: 20 }}>
@@ -168,7 +247,14 @@ export default function CreateSessionScreen({ navigation, route }: any) {
         activeOpacity={0.8}
         onPress={handleSubmit}
       >
-        <Text style={{ color: 'white', textAlign: 'center', fontSize: 18, fontWeight: '600' }}>
+        <Text
+          style={{
+            color: 'white',
+            textAlign: 'center',
+            fontSize: 18,
+            fontWeight: '600',
+          }}
+        >
           Save Session
         </Text>
       </TouchableOpacity>

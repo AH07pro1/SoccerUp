@@ -31,6 +31,7 @@ export default function DrillListScreen({ navigation, route }: any) {
   const [selectedDrills, setSelectedDrills] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState<'default' | 'name' | 'duration'>('default');
+  const [creatorFilter, setCreatorFilter] = useState<'all' | 'user' | 'system'>('all');
 
   useFocusEffect(
     useCallback(() => {
@@ -71,7 +72,14 @@ export default function DrillListScreen({ navigation, route }: any) {
   };
 
   const filteredAndSortedDrills = drills
-    .filter((d) => d.drillName.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter((d) => {
+      const matchesSearch = d.drillName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFilter =
+        creatorFilter === 'all' ||
+        (creatorFilter === 'user' && d.createdByUser) ||
+        (creatorFilter === 'system' && !d.createdByUser);
+      return matchesSearch && matchesFilter;
+    })
     .sort((a, b) => {
       if (sortOption === 'name') {
         return a.drillName.localeCompare(b.drillName);
@@ -120,14 +128,26 @@ export default function DrillListScreen({ navigation, route }: any) {
           className="border border-gray-300 rounded-lg p-3 mb-3"
         />
 
+        {/* Sort Picker */}
         <Picker
           selectedValue={sortOption}
           onValueChange={(value) => setSortOption(value)}
-          className="mb-4"
+          className="mb-3"
         >
           <Picker.Item label="Default Order" value="default" />
           <Picker.Item label="Sort by Name" value="name" />
           <Picker.Item label="Sort by Duration" value="duration" />
+        </Picker>
+
+        {/* Filter Picker */}
+        <Picker
+          selectedValue={creatorFilter}
+          onValueChange={(value) => setCreatorFilter(value)}
+          className="mb-4"
+        >
+          <Picker.Item label="All Drills" value="all" />
+          <Picker.Item label="My Drills" value="user" />
+          <Picker.Item label="System Drills" value="system" />
         </Picker>
       </View>
 
