@@ -94,7 +94,7 @@ export default function CreateSessionScreen({ navigation, route }: any) {
     drills,
     objectives,
     materials,
-    sessionDate: sessionDate.toISOString(),
+    scheduledDate: sessionDate.toISOString(),
   };
 
   try {
@@ -105,10 +105,12 @@ export default function CreateSessionScreen({ navigation, route }: any) {
     });
 
     const text = await response.text();
+    console.log('session date', sessionData.scheduledDate);
+    
 
     if (response.ok) {
       Alert.alert('Success', 'Session created!');
-      navigation.goBack();
+      navigation.navigate('Tabs', { screen: 'Home' });
     } else {
       const errorJson = JSON.parse(text);
       const newErrors: Record<string, string> = {};

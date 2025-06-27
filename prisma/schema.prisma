@@ -20,6 +20,7 @@ model Session {
   drills      Drill[]   // Relation to Drill model
   objectives  String[]  // Still as simple array of strings
   materials   String[]  // Still as simple array of strings
+  scheduledDate DateTime? // Date and time when the session is scheduled
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }

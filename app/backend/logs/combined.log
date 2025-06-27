@@ -104,3 +104,21 @@
 {"errors":{"_errors":[],"objectives":{"_errors":["At least one objective is required"]}},"level":"warn","message":"Validation errors","timestamp":"2025-06-26T19:04:27.289Z"}
 {"errors":{"_errors":[],"drills":{"_errors":["At least one drill is required"]},"objectives":{"_errors":["At least one objective is required"]},"sessionName":{"_errors":["Session name is required"]}},"level":"warn","message":"Validation errors","timestamp":"2025-06-26T19:49:02.116Z"}
 {"errors":{"_errors":[],"drills":{"_errors":["At least one drill is required"]},"objectives":{"_errors":["At least one objective is required"]},"sessionName":{"_errors":["Session name is required"]}},"level":"warn","message":"Validation errors","timestamp":"2025-06-26T19:50:00.508Z"}
+{"errors":{"_errors":[],"objectives":{"_errors":["At least one objective is required"]}},"level":"warn","message":"Validation errors","timestamp":"2025-06-26T19:55:19.096Z"}
+{"level":"info","message":"Session created","sessionId":14,"timestamp":"2025-06-26T19:55:28.982Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-27T15:27:07.325Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-27T15:52:23.270Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-27T16:39:22.507Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-27T17:07:50.218Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-27T17:34:55.116Z"}
+{"level":"info","message":"Session created","sessionId":15,"timestamp":"2025-06-27T17:58:25.493Z"}
+{"level":"info","message":"Session created","sessionId":16,"timestamp":"2025-06-27T18:17:10.906Z"}
+{"level":"info","message":"Session created","sessionId":17,"timestamp":"2025-06-27T18:18:08.832Z"}
+{"level":"info","message":"Session created","sessionId":18,"timestamp":"2025-06-27T18:21:15.281Z"}
+{"level":"info","message":"Session created","sessionId":19,"timestamp":"2025-06-27T18:30:36.514Z"}
+{"level":"info","message":"Session created","sessionId":20,"timestamp":"2025-06-27T18:33:38.095Z"}
+{"level":"info","message":"Session created","sessionId":21,"timestamp":"2025-06-27T18:38:08.963Z"}
+{"level":"info","message":"Session created","sessionId":22,"timestamp":"2025-06-27T18:40:11.122Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-27T18:52:43.622Z"}
+{"body":{"drills":["Hhbjj"],"materials":["Ball"],"objectives":["Goals"],"scheduledDate":"2025-06-30T19:04:30.963Z","sessionName":"Ball control"},"level":"info","message":"📥 Received session creation request body:","timestamp":"2025-06-27T19:04:49.909Z"}
+{"level":"info","message":"Session created","sessionId":23,"timestamp":"2025-06-27T19:04:50.955Z"}
