@@ -127,3 +127,6 @@
 {"level":"info","message":"Logger initialized","timestamp":"2025-06-28T14:57:47.973Z"}
 {"body":{"drills":["Hdbbd","Hhbjj"],"materials":["Fun"],"objectives":["Fun"],"scheduledDate":"2025-06-28T15:19:54.964Z","sessionName":"Fun"},"level":"info","message":"📥 Received session creation request body:","timestamp":"2025-06-28T15:20:21.252Z"}
 {"level":"info","message":"Session created","sessionId":24,"timestamp":"2025-06-28T15:20:22.122Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-28T15:52:13.992Z"}
+{"body":{"drills":["Passing","Shooting","Juggling"],"materials":["Cones","Goal"],"objectives":["Sharper control"],"scheduledDate":"2025-06-30T16:29:24.279Z","sessionName":"Passing Session"},"level":"info","message":"📥 Received session creation request body:","timestamp":"2025-06-28T16:29:53.425Z"}
+{"level":"info","message":"Session created","sessionId":25,"timestamp":"2025-06-28T16:29:54.053Z"}

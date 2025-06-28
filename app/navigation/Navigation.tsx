@@ -9,6 +9,7 @@ import CreateDrillScreen from '../screens/CreateDrillScreen';
 import DrillDetailScreen from '../screens/DrillDetailScreen';
 import DrillListScreen from '../screens/DrillListScreen';
 import SessionDetailScreen from '../screens/SessionDetailScreen';
+import PlaySessionScreen from '../screens/PlaySessionScreen';
 
 export type RootStackParamList = {
   Tabs: undefined;
@@ -17,6 +18,7 @@ export type RootStackParamList = {
   DrillDetail: { drill: any };
   DrillList: undefined;
   SessionDetail: { session: any };
+  PlaySession: { session: any };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -31,6 +33,7 @@ export default function Navigation() {
         <Stack.Screen name="DrillDetail" component={DrillDetailScreen} />
         <Stack.Screen name="DrillList" component={DrillListScreen} />
         <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
+        <Stack.Screen name="PlaySession" component={PlaySessionScreen} />
 
       </Stack.Navigator>
     </NavigationContainer>

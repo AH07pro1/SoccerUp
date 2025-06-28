@@ -113,12 +113,13 @@ export default function SessionDetailScreen({ route, navigation }: any) {
 
         </View>
 
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          className=" bg-green-600 py-3 rounded-lg"
-        >
-          <Text className="text-white text-center font-semibold">Go Back</Text>
-        </TouchableOpacity>
+       <TouchableOpacity
+  onPress={() => navigation.navigate('PlaySession', { drills: session.drills })}
+  className="mt-4 bg-blue-600 py-3 rounded-lg"
+>
+  <Text className="text-white text-center font-semibold">▶️ Play Session</Text>
+</TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );
