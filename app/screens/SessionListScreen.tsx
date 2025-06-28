@@ -99,7 +99,7 @@ export default function SessionListScreen({ navigation }: any) {
         )}
         renderItem={({ item }) => (
           <TouchableOpacity
-            onPress={() => navigation.navigate('SessionDetail', { session: item })}
+            onPress={() => navigation.navigate('SessionDetail', { sessionId: item.id })}
             activeOpacity={0.7}
             className="bg-green-50 rounded-2xl p-4 mb-3 border border-green-300"
           >

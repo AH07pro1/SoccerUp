@@ -20,6 +20,33 @@ router.get('/', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
+
+//get a specific session by ID
+router.get('/:id', async (req: Request, res: Response): Promise<any> => {
+  const sessionId = parseInt(req.params.id);
+
+  if (isNaN(sessionId)) {
+    return res.status(400).json({ error: 'Invalid session ID' });
+  }
+
+  try {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: { drills: true },
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    res.status(200).json(session);
+  } catch (error) {
+    logger.error('Error fetching session by ID', { error });
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 router.post('/', async (req: Request, res: Response): Promise<any> => {
   const result = sessionSchema.safeParse(req.body);
   logger.info("📥 Received session creation request body:", { body: req.body });
@@ -30,6 +57,7 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
     errors: result.error.format(),  // send the full structured error object
   });
 }
+
 
 
   try {

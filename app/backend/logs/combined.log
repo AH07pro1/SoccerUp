@@ -122,3 +122,8 @@
 {"level":"info","message":"Logger initialized","timestamp":"2025-06-27T18:52:43.622Z"}
 {"body":{"drills":["Hhbjj"],"materials":["Ball"],"objectives":["Goals"],"scheduledDate":"2025-06-30T19:04:30.963Z","sessionName":"Ball control"},"level":"info","message":"📥 Received session creation request body:","timestamp":"2025-06-27T19:04:49.909Z"}
 {"level":"info","message":"Session created","sessionId":23,"timestamp":"2025-06-27T19:04:50.955Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-28T14:32:20.402Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-28T14:52:05.720Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-28T14:57:47.973Z"}
+{"body":{"drills":["Hdbbd","Hhbjj"],"materials":["Fun"],"objectives":["Fun"],"scheduledDate":"2025-06-28T15:19:54.964Z","sessionName":"Fun"},"level":"info","message":"📥 Received session creation request body:","timestamp":"2025-06-28T15:20:21.252Z"}
+{"level":"info","message":"Session created","sessionId":24,"timestamp":"2025-06-28T15:20:22.122Z"}
