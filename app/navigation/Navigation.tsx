@@ -36,7 +36,7 @@ export default function Navigation() {
         <Stack.Screen name="DrillList" component={DrillListScreen} />
         <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
         <Stack.Screen name="PlaySession" component={PlaySessionScreen} />
-        <Stack.Screen name="SessionComplete" component={SessionCompleteScreen} />
+        <Stack.Screen name="SessionComplete" component={SessionCompleteScreen as React.ComponentType<any>} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -26,6 +26,7 @@ export default function SessionDetailScreen({ route, navigation }: any) {
       try {
         const res = await fetch(`http://192.168.2.19:3000/api/session/${sessionId}`);
         const data = await res.json();
+        console.log('Session detail data:', data);
         const formatted: Session = {
           id: data.id,
           title: data.sessionName,
