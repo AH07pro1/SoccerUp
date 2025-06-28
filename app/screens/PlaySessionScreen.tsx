@@ -1,156 +1,153 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  Vibration, 
-  Animated,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Vibration } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import * as Speech from 'expo-speech';
+import Animated, {
+  useSharedValue,
+  useAnimatedProps,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 type Drill = {
   drillName: string;
-  duration: number; // minutes
+  duration: number;
 };
 
 export default function SessionPlayerScreen({ route, navigation }: any) {
   const drills: Drill[] = route?.params?.drills || [];
-
-  const restDuration = 10; // rest in seconds
+  console.log('Drills:', drills);
+  const restDuration = 10;
 
   const [currentDrillIndex, setCurrentDrillIndex] = useState(0);
-  const [secondsRemaining, setSecondsRemaining] = useState(
-    drills.length > 0 ? drills[0].duration * 60 : 0
-  );
+  const [secondsRemaining, setSecondsRemaining] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isResting, setIsResting] = useState(false);
+  const [countdown, setCountdown] = useState(3);
+  const [showCountdown, setShowCountdown] = useState(true);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Animated progress value 0 to 1
-  const progressAnim = useRef(new Animated.Value(0)).current;
+  // Progress Circle Constants
+  const size = 220;
+  const strokeWidth = 12;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
 
-  const speak = (text: string) => {
-    Speech.stop();
-    Speech.speak(text, { rate: 0.9 });
-  };
+  const progress = useSharedValue(0);
 
-  // Announce drill/rest start
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - progress.value),
+  }));
+
+  // Handle countdown before session starts
   useEffect(() => {
-    if (isResting) {
-      speak(`Rest for ${restDuration} seconds`);
-    } else if (drills[currentDrillIndex]) {
-      speak(`Start ${drills[currentDrillIndex].drillName} for ${drills[currentDrillIndex].duration} minutes`);
-    }
-    // Reset progress animation
-    progressAnim.setValue(0);
-  }, [currentDrillIndex, isResting]);
-
-  // Timer effect
-  useEffect(() => {
-    if (isPaused) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+    if (showCountdown) {
+      if (countdown > 0) {
+        Speech.speak(`${countdown}`);
+        const countdownTimer = setTimeout(() => {
+          setCountdown((prev) => prev - 1);
+        }, 1300); // slowed down for better visibility
+        return () => clearTimeout(countdownTimer);
+      } else {
+        Speech.speak('Start session');
+        // Show "Start!" for 2 seconds before starting drills
+        const startTimer = setTimeout(() => {
+          setShowCountdown(false);
+          startDrill(drills[0].duration * 60);
+        }, 2000);
+        return () => clearTimeout(startTimer);
       }
-      return;
     }
+  }, [countdown, showCountdown]);
 
-    if (intervalRef.current) return; // Already running
+  // Clear interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  const startDrill = (duration: number) => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setSecondsRemaining(duration);
+    progress.value = 0; // reset progress immediately
+
+    // Animate progress smoothly over the duration
+    progress.value = withTiming(1, {
+      duration: duration * 1000,
+      easing: Easing.linear,
+    });
 
     intervalRef.current = setInterval(() => {
-      setSecondsRemaining(prev => {
+      setSecondsRemaining((prev) => {
         if (prev <= 1) {
           clearInterval(intervalRef.current!);
-          intervalRef.current = null;
           handleDrillEnd();
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [isPaused, currentDrillIndex, isResting]);
-
-  // Animate progress bar smoothly
-  useEffect(() => {
-    const totalDuration = isResting ? restDuration : drills[currentDrillIndex]?.duration * 60 || 1;
-    const elapsed = totalDuration - secondsRemaining;
-
-    Animated.timing(progressAnim, {
-      toValue: elapsed / totalDuration,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-  }, [secondsRemaining]);
+  };
 
   const handleDrillEnd = () => {
     Vibration.vibrate(500);
-
     if (isResting) {
-      // After rest, move to next drill or finish
       if (currentDrillIndex + 1 < drills.length) {
-        setCurrentDrillIndex((idx) => {
-          setIsResting(false);
-          setSecondsRemaining(drills[idx + 1].duration * 60);
-          return idx + 1;
-        });
+        const nextDrill = drills[currentDrillIndex + 1];
+        Speech.speak(`Next: ${nextDrill.drillName}`);
+        setCurrentDrillIndex((prev) => prev + 1);
+        setIsResting(false);
+        startDrill(nextDrill.duration * 60);
       } else {
-        speak("Session complete. Good job!");
-        navigation.goBack();
+        Speech.speak('Session complete');
+
+        // Calculate total drills and total time including rests
+        const totalDrills = drills.length;
+        const totalTimeSeconds =
+          drills.reduce((sum, d) => sum + d.duration * 60, 0) +
+          restDuration * (drills.length - 1);
+
+        // Navigate to SessionComplete screen with summary data
+        navigation.replace('SessionComplete', { totalDrills, totalTimeSeconds });
       }
     } else {
-      // Start rest period
+      Speech.speak('Rest now');
       setIsResting(true);
-      setSecondsRemaining(restDuration);
+      startDrill(restDuration);
     }
   };
 
   const handlePauseResume = () => {
-    setIsPaused(prev => !prev);
+    if (isPaused) {
+      // Resume timer and progress animation
+      startDrill(secondsRemaining);
+    } else {
+      // Pause timer and stop progress animation
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      progress.value = withTiming(progress.value, { duration: 0 }); // freeze animation
+    }
+    setIsPaused((prev) => !prev);
   };
 
   const handleSkip = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    if (isResting) {
-      // Skip rest, go to next drill or finish
-      if (currentDrillIndex + 1 < drills.length) {
-        setIsResting(false);
-        setCurrentDrillIndex((idx) => {
-          setSecondsRemaining(drills[idx + 1].duration * 60);
-          return idx + 1;
-        });
-      } else {
-        speak("Session complete. Good job!");
-        navigation.goBack();
-      }
-    } else {
-      // Skip drill, go to rest period
-      setIsResting(true);
-      setSecondsRemaining(restDuration);
-    }
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    // Quickly animate progress to 100% to avoid jitter
+    progress.value = withTiming(1, { duration: 200 });
+    // Small delay before ending drill so animation completes
+    setTimeout(() => {
+      handleDrillEnd();
+    }, 250);
   };
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+  const formatTime = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
-
-  const nextDrillName =
-    !isResting && currentDrillIndex + 1 < drills.length
-      ? drills[currentDrillIndex + 1].drillName
-      : null;
 
   if (!drills || drills.length === 0) {
     return (
@@ -167,51 +164,83 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
   }
 
   return (
-    <View className="flex-1 bg-white justify-center px-6">
-      <Text className="text-center text-3xl font-bold text-green-600 mb-6">
-        {isResting ? 'Rest' : drills[currentDrillIndex].drillName}
-      </Text>
-
-      <Text className="text-center text-5xl font-bold text-gray-800 mb-2">
-        {formatTime(secondsRemaining)}
-      </Text>
-
-      {nextDrillName && (
-        <Text className="text-center text-gray-600 mb-6">
-          Next: {nextDrillName}
+    <View className="flex-1 bg-white justify-center items-center px-6">
+      {showCountdown ? (
+        <Text className="text-6xl font-bold text-green-600">
+          {countdown > 0 ? countdown : 'Start!'}
         </Text>
-      )}
-
-      {/* Progress Bar */}
-      <View className="h-4 bg-gray-200 rounded-full overflow-hidden mb-8">
-        <Animated.View
-          className="bg-green-500 h-full"
-          style={{
-            width: progressAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['0%', '100%'],
-            }),
-          }}
-        />
-      </View>
-
-      <View className="flex-row justify-around mt-6">
-        <TouchableOpacity
-          onPress={handlePauseResume}
-          className="bg-yellow-500 px-6 py-3 rounded-lg"
-        >
-          <Text className="text-white font-bold text-lg">
-            {isPaused ? 'Resume' : 'Pause'}
+      ) : (
+        <>
+          <Text className="text-center text-xl text-gray-700 mb-2">
+            {isResting ? 'Rest' : drills[currentDrillIndex].drillName}
           </Text>
-        </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={handleSkip}
-          className="bg-gray-400 px-6 py-3 rounded-lg"
-        >
-          <Text className="text-white font-bold text-lg">Skip</Text>
-        </TouchableOpacity>
-      </View>
+          <View
+            style={{
+              width: size,
+              height: size,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 24,
+            }}
+          >
+            <Svg width={size} height={size}>
+              <Circle
+                stroke="#e5e7eb"
+                fill="none"
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                strokeWidth={strokeWidth}
+              />
+              <AnimatedCircle
+                stroke="#10b981"
+                fill="none"
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                strokeWidth={strokeWidth}
+                strokeDasharray={`${circumference} ${circumference}`}
+                animatedProps={animatedProps}
+                strokeLinecap="round"
+              />
+            </Svg>
+            {/* Timer text centered inside circle */}
+            <Text
+              style={{
+                position: 'absolute',
+                fontSize: 48,
+                fontWeight: 'bold',
+                color: '#111827', // gray-900
+              }}
+            >
+              {formatTime(secondsRemaining)}
+            </Text>
+          </View>
+
+          <Text className="text-lg text-gray-600 mt-4 w-full text-center">
+            Next: {drills[currentDrillIndex + 1]?.drillName || 'Session complete'}
+          </Text>
+
+          <View className="flex-row justify-around w-full mt-10">
+            <TouchableOpacity
+              onPress={handlePauseResume}
+              className="bg-yellow-500 px-6 py-3 rounded-lg mx-2"
+            >
+              <Text className="text-white font-bold text-lg">
+                {isPaused ? 'Resume' : 'Pause'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleSkip}
+              className="bg-gray-500 px-6 py-3 rounded-lg mx-2"
+            >
+              <Text className="text-white font-bold text-lg">Skip</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
     </View>
   );
 }
