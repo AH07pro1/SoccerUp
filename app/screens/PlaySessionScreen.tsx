@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Vibration, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import * as Speech from 'expo-speech';
 import Animated, {
@@ -29,17 +29,21 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Progress Circle Constants
   const size = 220;
   const strokeWidth = 12;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
   const progress = useSharedValue(0);
+  const globalProgress = useSharedValue(0);
 
   const animatedProps = useAnimatedProps(() => ({
     strokeDashoffset: circumference * (1 - progress.value),
   }));
+
+  const totalSessionSeconds =
+    drills.reduce((sum, d) => sum + d.duration * 60, 0) +
+    restDuration * (drills.length - 1);
 
   useEffect(() => {
     if (showCountdown) {
@@ -66,64 +70,101 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
     };
   }, []);
 
+  const tickGlobalProgress = () => {
+    globalProgress.value = withTiming(
+      globalProgress.value + 1 / totalSessionSeconds,
+      { duration: 1000, easing: Easing.linear }
+    );
+  };
+
   const startDrill = (duration: number) => {
-  if (intervalRef.current) clearInterval(intervalRef.current);
-  setSecondsRemaining(duration);
-  progress.value = 0;
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setIsResting(false);
+    setSecondsRemaining(duration);
+    progress.value = 0;
 
-  // Animate progress smoothly
-  progress.value = withTiming(1, {
-    duration: duration * 1000,
-    easing: Easing.linear,
-  });
-
-  intervalRef.current = setInterval(() => {
-    setSecondsRemaining((prev) => {
-      const next = prev - 1;
-
-      // 🔊 Halfway cue
-      if (next === Math.floor(duration / 2)) {
-        Speech.speak("You're halfway there!");
-      }
-
-      // 🔊 10 seconds left cue
-      if (next === 10) {
-        Speech.speak("10 seconds left!");
-      }
-
-      if (next <= 0) {
-        clearInterval(intervalRef.current!);
-        endSession();
-        return 0;
-      }
-
-      return next;
+    progress.value = withTiming(1, {
+      duration: duration * 1000,
+      easing: Easing.linear,
     });
-  }, 1000);
-};
 
+    intervalRef.current = setInterval(() => {
+      setSecondsRemaining((prev) => {
+        const next = prev - 1;
+        tickGlobalProgress();
 
-const endSession = () => {
-  Speech.speak('Session complete');
+        if (next === Math.floor(duration / 2)) {
+          Speech.speak("You're halfway there!");
+        }
 
-  const totalDrills = drills.length;
-  const totalTimeSeconds =
-    drills.reduce((sum, d) => sum + d.duration * 60, 0) +
-    restDuration * Math.max(0, drills.length - 1);
+        if (next === 10) {
+          Speech.speak("10 seconds left!");
+        }
 
-  navigation.replace('SessionComplete', {
-    totalDrills,
-    totalTimeSeconds,
-    drills,
-    restDuration,
-  });
-};
+        if (next <= 0) {
+          clearInterval(intervalRef.current!);
 
+          const nextIndex = currentDrillIndex + 1;
+          if (nextIndex < drills.length) {
+            setCurrentDrillIndex(nextIndex);
+            startRest();
+          } else {
+            endSession();
+          }
+          return 0;
+        }
 
+        return next;
+      });
+    }, 1000);
+  };
+
+  const startRest = () => {
+    setIsResting(true);
+    setSecondsRemaining(restDuration);
+    progress.value = 0;
+
+    Speech.speak("Rest now");
+    const nextDrillName = drills[currentDrillIndex + 1]?.drillName;
+    if (nextDrillName) {
+      Speech.speak(`Next drill: ${nextDrillName}`);
+    }
+
+    progress.value = withTiming(1, {
+      duration: restDuration * 1000,
+      easing: Easing.linear,
+    });
+
+    intervalRef.current = setInterval(() => {
+      setSecondsRemaining((prev) => {
+        const next = prev - 1;
+        tickGlobalProgress();
+
+        if (next <= 0) {
+          clearInterval(intervalRef.current!);
+          startDrill(drills[currentDrillIndex].duration * 60);
+          return 0;
+        }
+
+        return next;
+      });
+    }, 1000);
+  };
+
+  const endSession = () => {
+    Speech.speak('Session complete');
+    navigation.replace('SessionComplete', {
+      totalDrills: drills.length,
+      totalTimeSeconds: totalSessionSeconds,
+      drills,
+      restDuration,
+    });
+  };
 
   const handlePauseResume = () => {
     if (isPaused) {
-      startDrill(secondsRemaining);
+      if (isResting) startRest();
+      else startDrill(secondsRemaining);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
       progress.value = withTiming(progress.value, { duration: 0 });
@@ -132,24 +173,51 @@ const endSession = () => {
   };
 
   const handleSkip = () => {
-    Alert.alert('Skip drill?', 'Are you sure you want to skip this drill?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Yes',
-        onPress: () => {
-          if (intervalRef.current) clearInterval(intervalRef.current);
-          progress.value = withTiming(1, { duration: 200 });
-          setTimeout(() => endSession(), 250);
-        },
+  Alert.alert('Skip?', 'Skip current segment?', [
+    { text: 'Cancel', style: 'cancel' },
+    {
+      text: 'Yes',
+      onPress: () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+
+        // Calculate the current segment duration in seconds
+        const segmentDuration = isResting
+          ? restDuration
+          : drills[currentDrillIndex].duration * 60;
+
+        // Increase global progress by the skipped segment proportion immediately
+        globalProgress.value = Math.min(
+          1,
+          globalProgress.value + 1 / totalSessionSeconds * segmentDuration
+        );
+
+        progress.value = withTiming(1, { duration: 200 });
+
+        setTimeout(() => {
+          const nextIndex = currentDrillIndex + 1;
+          if (isResting) {
+            startDrill(drills[currentDrillIndex].duration * 60);
+          } else if (nextIndex < drills.length) {
+            setCurrentDrillIndex(nextIndex);
+            startRest();
+          } else {
+            endSession();
+          }
+        }, 250);
       },
-    ]);
-  };
+    },
+  ]);
+};
+
 
   const formatTime = (sec: number) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
+
+  const getGlobalPercent = () =>
+    `${Math.min(100, Math.round(globalProgress.value * 100))}%`;
 
   if (!drills || drills.length === 0) {
     return (
@@ -166,7 +234,22 @@ const endSession = () => {
   }
 
   return (
-    <View className="flex-1 bg-white justify-center items-center px-6">
+    <View className="flex-1 bg-white justify-center items-center px-6 pt-4">
+
+      {/* Global progress bar at the top */}
+      <View className="w-full mb-4">
+        <View className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+          <Animated.View
+            style={{
+              height: 16,
+              width: `${globalProgress.value * 100}%`,
+              backgroundColor: '#10b981',
+            }}
+          />
+        </View>
+        <Text className="text-right mt-1 text-sm text-gray-500">{getGlobalPercent()}</Text>
+      </View>
+
       {showCountdown ? (
         <Text className="text-6xl font-bold text-green-600">
           {countdown > 0 ? countdown : 'Start!'}
@@ -224,7 +307,9 @@ const endSession = () => {
           </View>
 
           <Text className="text-base text-gray-600 mt-2 w-full text-center">
-            Next: {drills[currentDrillIndex + 1]?.drillName || 'Session complete'}
+            {isResting
+              ? `Next: ${drills[currentDrillIndex + 1]?.drillName || 'Session complete'}`
+              : `Next: ${drills[currentDrillIndex + 1]?.drillName || 'Session complete'}`}
           </Text>
 
           <View className="flex-row justify-around w-full mt-10">

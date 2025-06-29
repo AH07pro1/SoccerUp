@@ -22,12 +22,11 @@ function ErrorText({ message }: { message?: string }) {
   );
 }
 
-const totalCards = 5; // Updated total cards to include date/time card
+const totalCards = 5; // total cards including date/time card
 
 export default function CreateSessionScreen({ navigation, route }: any) {
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  // Initialize states from route.params or defaults
   const [sessionName, setSessionName] = useState(route.params?.sessionName ?? '');
   const [drills, setDrills] = useState<string[]>(route.params?.selectedDrills ?? []);
   const [objectives, setObjectives] = useState<string[]>(route.params?.objectives ?? []);
@@ -40,10 +39,8 @@ export default function CreateSessionScreen({ navigation, route }: any) {
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [isTimePickerVisible, setTimePickerVisible] = useState(false);
 
-  // Track currentCard state, initialized from params or 0
   const [currentCard, setCurrentCard] = useState(route.params?.currentCard ?? 0);
 
-  // Sync when route params change (for when navigating back)
   useEffect(() => {
     if (route.params?.sessionName !== undefined) setSessionName(route.params.sessionName);
     if (route.params?.selectedDrills) setDrills(route.params.selectedDrills);
@@ -72,7 +69,7 @@ export default function CreateSessionScreen({ navigation, route }: any) {
     setDrills((prev) => prev.filter((tag) => tag !== tagToRemove));
   };
 
-  // Date picker handlers
+  // Date picker handler
   const handleConfirmDate = (date: Date) => {
     const updatedDate = new Date(sessionDate);
     updatedDate.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
@@ -80,7 +77,26 @@ export default function CreateSessionScreen({ navigation, route }: any) {
     setDatePickerVisible(false);
   };
 
+  // Time picker handler with validation: disallow time before now if date is today
   const handleConfirmTime = (time: Date) => {
+    const now = new Date();
+
+    const isToday =
+      sessionDate.getDate() === now.getDate() &&
+      sessionDate.getMonth() === now.getMonth() &&
+      sessionDate.getFullYear() === now.getFullYear();
+
+    if (isToday) {
+      const selectedDateTime = new Date(sessionDate);
+      selectedDateTime.setHours(time.getHours(), time.getMinutes(), 0, 0);
+
+      if (selectedDateTime < now) {
+        Alert.alert('Invalid time', 'Please select a time later than now.');
+        setTimePickerVisible(false);
+        return;
+      }
+    }
+
     const updatedDate = new Date(sessionDate);
     updatedDate.setHours(time.getHours(), time.getMinutes(), 0, 0);
     setSessionDate(updatedDate);
@@ -88,48 +104,43 @@ export default function CreateSessionScreen({ navigation, route }: any) {
   };
 
   const handleSubmit = async () => {
-  setErrors({});
-  const sessionData = {
-    sessionName,
-    drills,
-    objectives,
-    materials,
-    scheduledDate: sessionDate.toISOString(),
-  };
+    setErrors({});
+    const sessionData = {
+      sessionName,
+      drills,
+      objectives,
+      materials,
+      scheduledDate: sessionDate.toISOString(),
+    };
 
-  try {
-    const response = await fetch('http://192.168.2.19:3000/api/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sessionData),
-    });
+    try {
+      const response = await fetch('http://192.168.2.19:3000/api/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sessionData),
+      });
 
-    const text = await response.text();
-    console.log('session date', sessionData.scheduledDate);
-    
+      const text = await response.text();
 
-    if (response.ok) {
-      Alert.alert('Success', 'Session created!');
-      navigation.navigate('Tabs', { screen: 'Home' });
-    } else {
-      const errorJson = JSON.parse(text);
-      const newErrors: Record<string, string> = {};
-      for (const field in errorJson.errors) {
-        const fieldErrors = errorJson.errors[field]?._errors;
-        if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
-          newErrors[field] = fieldErrors[0];
+      if (response.ok) {
+        Alert.alert('Success', 'Session created!');
+        navigation.navigate('Tabs', { screen: 'Home' });
+      } else {
+        const errorJson = JSON.parse(text);
+        const newErrors: Record<string, string> = {};
+        for (const field in errorJson.errors) {
+          const fieldErrors = errorJson.errors[field]?._errors;
+          if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+            newErrors[field] = fieldErrors[0];
+          }
         }
+        setErrors(newErrors);
+        Alert.alert('Error', 'Failed to save session. Please check your input.');
       }
-      setErrors(newErrors);
-
-      // Add alert here for server validation errors or other issues
-      Alert.alert('Error', 'Failed to save session. Please check your input.');
+    } catch (err) {
+      Alert.alert('Error', 'Network or server issue');
     }
-  } catch (err) {
-    Alert.alert('Error', 'Network or server issue');
-  }
-};
-
+  };
 
   const renderCard = () => {
     switch (currentCard) {
@@ -193,7 +204,7 @@ export default function CreateSessionScreen({ navigation, route }: any) {
           </View>
         );
 
-      case 2: // New schedule date & time card
+      case 2:
         return (
           <View className="bg-gray-100 p-4 rounded-2xl mb-6">
             <Text className="text-lg font-semibold text-gray-800 mb-4">Schedule Date & Time</Text>
@@ -223,6 +234,7 @@ export default function CreateSessionScreen({ navigation, route }: any) {
               isVisible={isDatePickerVisible}
               mode="date"
               date={sessionDate}
+              minimumDate={new Date()} // disallow past dates
               onConfirm={handleConfirmDate}
               onCancel={() => setDatePickerVisible(false)}
             />
@@ -231,7 +243,7 @@ export default function CreateSessionScreen({ navigation, route }: any) {
               isVisible={isTimePickerVisible}
               mode="time"
               date={sessionDate}
-              onConfirm={handleConfirmTime}
+              onConfirm={handleConfirmTime} // manual validation inside
               onCancel={() => setTimePickerVisible(false)}
             />
           </View>
@@ -251,49 +263,48 @@ export default function CreateSessionScreen({ navigation, route }: any) {
         );
 
       case 4:
-  return (
-    <View className="bg-gray-100 p-6 rounded-2xl mb-6">
-      <Text className="text-xl font-semibold text-gray-800 mb-6 text-center">
-        Session Overview
-      </Text>
+        return (
+          <View className="bg-gray-100 p-6 rounded-2xl mb-6">
+            <Text className="text-xl font-semibold text-gray-800 mb-6 text-center">
+              Session Overview
+            </Text>
 
-      <View className="mb-4">
-        <Text className="text-gray-700">
-          <Text className="font-bold">Name: </Text>
-          {sessionName || 'Not Set'}
-        </Text>
-      </View>
+            <View className="mb-4">
+              <Text className="text-gray-700">
+                <Text className="font-bold">Name: </Text>
+                {sessionName || 'Not Set'}
+              </Text>
+            </View>
 
-      <View className="mb-4">
-        <Text className="text-gray-700">
-          <Text className="font-bold">Drills: </Text>
-          {drills.length > 0 ? drills.join(', ') : 'None'}
-        </Text>
-      </View>
+            <View className="mb-4">
+              <Text className="text-gray-700">
+                <Text className="font-bold">Drills: </Text>
+                {drills.length > 0 ? drills.join(', ') : 'None'}
+              </Text>
+            </View>
 
-      <View className="mb-4">
-        <Text className="text-gray-700">
-          <Text className="font-bold">Objectives: </Text>
-          {objectives.length > 0 ? objectives.join(', ') : 'None'}
-        </Text>
-      </View>
+            <View className="mb-4">
+              <Text className="text-gray-700">
+                <Text className="font-bold">Objectives: </Text>
+                {objectives.length > 0 ? objectives.join(', ') : 'None'}
+              </Text>
+            </View>
 
-      <View className="mb-4">
-        <Text className="text-gray-700">
-          <Text className="font-bold">Materials: </Text>
-          {materials.length > 0 ? materials.join(', ') : 'None'}
-        </Text>
-      </View>
+            <View className="mb-4">
+              <Text className="text-gray-700">
+                <Text className="font-bold">Materials: </Text>
+                {materials.length > 0 ? materials.join(', ') : 'None'}
+              </Text>
+            </View>
 
-      <View className="mt-6 pt-4 border-t border-gray-300">
-        <Text className="text-gray-700">
-          <Text className="font-bold">Scheduled for: </Text>
-          {sessionDate.toLocaleString()}
-        </Text>
-      </View>
-    </View>
-  );
-
+            <View className="mt-6 pt-4 border-t border-gray-300">
+              <Text className="text-gray-700">
+                <Text className="font-bold">Scheduled for: </Text>
+                {sessionDate.toLocaleString()}
+              </Text>
+            </View>
+          </View>
+        );
 
       default:
         return null;

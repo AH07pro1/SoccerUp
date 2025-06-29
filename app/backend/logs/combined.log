@@ -150,3 +150,5 @@
 {"body":{"drills":["Passing"],"materials":["Cones"],"objectives":["Pass"],"scheduledDate":"2025-06-28T20:55:16.467Z","sessionName":"Passing"},"level":"info","message":"📥 Received session creation request body:","timestamp":"2025-06-28T20:55:37.074Z"}
 {"level":"info","message":"Session created","sessionId":28,"timestamp":"2025-06-28T20:55:37.928Z"}
 {"level":"info","message":"Session created","sessionId":29,"timestamp":"2025-06-28T20:55:38.267Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-29T14:40:16.785Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-29T15:40:46.482Z"}
