@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,7 @@ export default function CreateDrillScreen({ navigation }: any) {
 
   const [drillName, setDrillName] = useState('');
   const [duration, setDuration] = useState('');
+  const [restTime, setRestTime] = useState('');
   const [drillCategory, setDrillCategory] = useState('passing');
 
   const [numberOfSets, setNumberOfSets] = useState('');
@@ -41,7 +42,6 @@ export default function CreateDrillScreen({ navigation }: any) {
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  // Animate fade out, change card, then fade in
   const goToCard = (index: number) => {
     if (index < 0 || index >= totalCards) return;
     Animated.timing(fadeAnim, {
@@ -58,9 +58,6 @@ export default function CreateDrillScreen({ navigation }: any) {
     });
   };
 
-  // Automatically go to next card when last input on current card is done
-  // We listen for onSubmitEditing on last inputs
-
   const handleSubmit = async () => {
     setErrors({});
     const bodyData = {
@@ -68,6 +65,7 @@ export default function CreateDrillScreen({ navigation }: any) {
       duration: Number(duration),
       numberOfSets: Number(numberOfSets),
       numberOfReps: Number(numberOfReps),
+      restTime: Number(restTime),
       drillCategory,
       materials: materials ? materials.split(',').map((m) => m.trim()) : [],
       description,
@@ -113,7 +111,6 @@ export default function CreateDrillScreen({ navigation }: any) {
     }
   };
 
-  // Render each card
   const renderCard = () => {
     switch (currentCard) {
       case 0:
@@ -165,7 +162,7 @@ export default function CreateDrillScreen({ navigation }: any) {
       case 1:
         return (
           <View className="bg-gray-100 p-4 rounded-2xl mb-6">
-            <Text className="text-lg font-semibold text-gray-800 mb-2">Repetitions</Text>
+            <Text className="text-lg font-semibold text-gray-800 mb-2">Repetitions & Rest</Text>
 
             <Text className="text-sm text-gray-600 mb-1">Number of Sets</Text>
             <TextInput
@@ -187,10 +184,22 @@ export default function CreateDrillScreen({ navigation }: any) {
               keyboardType="numeric"
               value={numberOfReps}
               onChangeText={setNumberOfReps}
-              returnKeyType="done"
+              returnKeyType="next"
               onSubmitEditing={() => goToCard(2)}
+              blurOnSubmit={false}
             />
             <ErrorText message={errors.numberOfReps} />
+
+            <Text className="text-sm text-gray-600 mb-1">Rest Time (in seconds)</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-2 bg-white"
+              placeholder="e.g. 30"
+              keyboardType="numeric"
+              value={restTime}
+              onChangeText={setRestTime}
+              returnKeyType="done"
+            />
+            <ErrorText message={errors.restTime} />
           </View>
         );
 
@@ -241,7 +250,6 @@ export default function CreateDrillScreen({ navigation }: any) {
       className="flex-1 bg-white px-5 pt-10"
       keyboardVerticalOffset={80}
     >
-      {/* Progress Indicator */}
       <View className="w-full mb-6">
         <View className="bg-gray-200 rounded-full h-4">
           <View

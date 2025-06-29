@@ -13,12 +13,13 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 type Drill = {
   drillName: string;
-  duration: number;
+  duration: number; // in minutes
+  restTime: number; // in seconds
 };
 
 export default function SessionPlayerScreen({ route, navigation }: any) {
   const drills: Drill[] = route?.params?.drills || [];
-  const restDuration = 10;
+  console.log('Drills:', drills);
 
   const [currentDrillIndex, setCurrentDrillIndex] = useState(0);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
@@ -42,8 +43,7 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
   }));
 
   const totalSessionSeconds =
-    drills.reduce((sum, d) => sum + d.duration * 60, 0) +
-    restDuration * (drills.length - 1);
+    drills.reduce((sum, d) => sum + d.duration * 60 + d.restTime, 0) - (drills.at(-1)?.restTime || 0);
 
   useEffect(() => {
     if (showCountdown) {
@@ -120,8 +120,10 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
   };
 
   const startRest = () => {
+    const restTime = drills[currentDrillIndex]?.restTime || 0;
+
     setIsResting(true);
-    setSecondsRemaining(restDuration);
+    setSecondsRemaining(restTime);
     progress.value = 0;
 
     Speech.speak("Rest now");
@@ -131,7 +133,7 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
     }
 
     progress.value = withTiming(1, {
-      duration: restDuration * 1000,
+      duration: restTime * 1000,
       easing: Easing.linear,
     });
 
@@ -157,7 +159,6 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
       totalDrills: drills.length,
       totalTimeSeconds: totalSessionSeconds,
       drills,
-      restDuration,
     });
   };
 
@@ -173,42 +174,39 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
   };
 
   const handleSkip = () => {
-  Alert.alert('Skip?', 'Skip current segment?', [
-    { text: 'Cancel', style: 'cancel' },
-    {
-      text: 'Yes',
-      onPress: () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
+    Alert.alert('Skip?', 'Skip current segment?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Yes',
+        onPress: () => {
+          if (intervalRef.current) clearInterval(intervalRef.current);
 
-        // Calculate the current segment duration in seconds
-        const segmentDuration = isResting
-          ? restDuration
-          : drills[currentDrillIndex].duration * 60;
+          const segmentDuration = isResting
+            ? drills[currentDrillIndex]?.restTime || 0
+            : drills[currentDrillIndex]?.duration * 60;
 
-        // Increase global progress by the skipped segment proportion immediately
-        globalProgress.value = Math.min(
-          1,
-          globalProgress.value + 1 / totalSessionSeconds * segmentDuration
-        );
+          globalProgress.value = Math.min(
+            1,
+            globalProgress.value + 1 / totalSessionSeconds * segmentDuration
+          );
 
-        progress.value = withTiming(1, { duration: 200 });
+          progress.value = withTiming(1, { duration: 200 });
 
-        setTimeout(() => {
-          const nextIndex = currentDrillIndex + 1;
-          if (isResting) {
-            startDrill(drills[currentDrillIndex].duration * 60);
-          } else if (nextIndex < drills.length) {
-            setCurrentDrillIndex(nextIndex);
-            startRest();
-          } else {
-            endSession();
-          }
-        }, 250);
+          setTimeout(() => {
+            const nextIndex = currentDrillIndex + 1;
+            if (isResting) {
+              startDrill(drills[currentDrillIndex].duration * 60);
+            } else if (nextIndex < drills.length) {
+              setCurrentDrillIndex(nextIndex);
+              startRest();
+            } else {
+              endSession();
+            }
+          }, 250);
+        },
       },
-    },
-  ]);
-};
-
+    ]);
+  };
 
   const formatTime = (sec: number) => {
     const m = Math.floor(sec / 60);
@@ -235,8 +233,6 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
 
   return (
     <View className="flex-1 bg-white justify-center items-center px-6 pt-4">
-
-      {/* Global progress bar at the top */}
       <View className="w-full mb-4">
         <View className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
           <Animated.View
@@ -307,9 +303,7 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
           </View>
 
           <Text className="text-base text-gray-600 mt-2 w-full text-center">
-            {isResting
-              ? `Next: ${drills[currentDrillIndex + 1]?.drillName || 'Session complete'}`
-              : `Next: ${drills[currentDrillIndex + 1]?.drillName || 'Session complete'}`}
+            Next: {drills[currentDrillIndex + 1]?.drillName || 'Session complete'}
           </Text>
 
           <View className="flex-row justify-around w-full mt-10">

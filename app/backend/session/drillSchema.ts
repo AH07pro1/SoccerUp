@@ -27,6 +27,10 @@ const drillSchema = z.object({
   materials: z.array(z.string()).optional(),
   description: z.string().min(1, "Description is required"),
   visualReference: z.string().url().optional().nullable(),
-  createdByUser: z.boolean().default(false)
+  createdByUser: z.boolean().default(false),
+  restTime: z.number()
+  .int("Rest time must be an integer")
+  .nonnegative("Rest time can't be negative")
+
 });
 export default drillSchema;

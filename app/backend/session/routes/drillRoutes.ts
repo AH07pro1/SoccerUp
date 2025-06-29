@@ -54,6 +54,7 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
     duration: validatedData.duration,
     numberOfSets: validatedData.numberOfSets,
     numberOfReps: validatedData.numberOfReps,
+    restTime: validatedData.restTime,
     description: validatedData.description,
     visualReference: validatedData.visualReference,
     drillCategory: validatedData.drillCategory,

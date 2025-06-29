@@ -152,3 +152,21 @@
 {"level":"info","message":"Session created","sessionId":29,"timestamp":"2025-06-28T20:55:38.267Z"}
 {"level":"info","message":"Logger initialized","timestamp":"2025-06-29T14:40:16.785Z"}
 {"level":"info","message":"Logger initialized","timestamp":"2025-06-29T15:40:46.482Z"}
+{"body":{"createdByUser":true,"description":"Dribbles\n","drillCategory":"dribbling","drillName":"Ronaldinho drlll","duration":5,"materials":["Cones"],"numberOfReps":5,"numberOfSets":7,"restTime":5,"visualReference":null},"level":"info","message":"📥 Received drill creation request body:","timestamp":"2025-06-29T16:17:32.196Z"}
+{"drillId":53,"level":"info","message":"✅ Drill created successfully","timestamp":"2025-06-29T16:17:32.842Z"}
+{"body":{"drills":["Ronaldinho drlll"],"materials":["Cones"],"objectives":["Neymar dribbles"],"scheduledDate":"2025-06-30T16:17:40.660Z","sessionName":"New session"},"level":"info","message":"📥 Received session creation request body:","timestamp":"2025-06-29T16:18:17.809Z"}
+{"level":"info","message":"Session created","sessionId":30,"timestamp":"2025-06-29T16:18:18.428Z"}
+{"body":{"createdByUser":true,"description":"Mdd","drillCategory":"dribbling","drillName":"Cone Weave inside outside","duration":4,"materials":["Cones"],"numberOfReps":5,"numberOfSets":3,"restTime":45,"visualReference":null},"level":"info","message":"📥 Received drill creation request body:","timestamp":"2025-06-29T16:22:41.657Z"}
+{"drillId":55,"level":"info","message":"✅ Drill created successfully","timestamp":"2025-06-29T16:22:42.350Z"}
+{"body":{"drills":["Ronaldinho drlll","Ronaldinho drlll","Cone Weave inside outside"],"materials":["Cones"],"objectives":["Shoot"],"scheduledDate":"2025-06-29T16:23:11.896Z","sessionName":"New session 5"},"level":"info","message":"📥 Received session creation request body:","timestamp":"2025-06-29T16:23:37.759Z"}
+{"level":"info","message":"Session created","sessionId":31,"timestamp":"2025-06-29T16:23:38.479Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-29T16:27:07.797Z"}
+{"level":"info","message":"Logger initialized","timestamp":"2025-06-29T16:32:51.715Z"}
+{"body":{"createdByUser":true,"description":"Ball","drillCategory":"passing","drillName":"Cone jump","duration":1,"materials":["Cones"],"numberOfReps":5,"numberOfSets":3,"restTime":75,"visualReference":null},"level":"info","message":"📥 Received drill creation request body:","timestamp":"2025-06-29T16:33:50.319Z"}
+{"drillId":59,"level":"info","message":"✅ Drill created successfully","timestamp":"2025-06-29T16:33:50.740Z"}
+{"body":{"drills":["Cone Weave inside outside","Cone jump"],"materials":["Cones"],"objectives":["Be better"],"scheduledDate":"2025-06-30T16:33:58.155Z","sessionName":"New drill session"},"level":"info","message":"📥 Received session creation request body:","timestamp":"2025-06-29T16:34:16.536Z"}
+{"level":"info","message":"Session created","sessionId":32,"timestamp":"2025-06-29T16:34:17.212Z"}
+{"body":{"createdByUser":true,"description":"Ncmf","drillCategory":"passing","drillName":"Custom","duration":5,"materials":["Xonss"],"numberOfReps":70,"numberOfSets":8,"restTime":60,"visualReference":null},"level":"info","message":"📥 Received drill creation request body:","timestamp":"2025-06-29T16:36:45.616Z"}
+{"drillId":62,"level":"info","message":"✅ Drill created successfully","timestamp":"2025-06-29T16:36:46.105Z"}
+{"body":{"drills":["Cone jump","Custom"],"materials":["Nxmx"],"objectives":["Hdn"],"scheduledDate":"2025-06-30T16:36:55.190Z","sessionName":"Vbj"},"level":"info","message":"📥 Received session creation request body:","timestamp":"2025-06-29T16:37:11.599Z"}
+{"level":"info","message":"Session created","sessionId":33,"timestamp":"2025-06-29T16:37:12.312Z"}

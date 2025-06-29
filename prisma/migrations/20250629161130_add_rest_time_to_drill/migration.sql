@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Drill" ADD COLUMN     "restTime" INTEGER NOT NULL DEFAULT 30;

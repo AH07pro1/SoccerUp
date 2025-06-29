@@ -31,6 +31,7 @@ model Drill {
   duration        Int           // duration in minutes
   numberOfSets    Int
   numberOfReps    Int
+  restTime        Int           @default(30) // rest time in seconds
   description     String
   visualReference String?       // optional image/video URL
   drillCategory   DrillCategory
