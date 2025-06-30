@@ -13,6 +13,20 @@ import {
 import TagInput from '../components/forms/TagInput';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
+type Drill = {
+  drillName: string;
+  duration: number;
+  numberOfSets: number;
+  numberOfReps: number;
+  drillCategory: 'passing' | 'shooting' | 'dribbling' | 'defending' | 'goalkeeping' | 'fitness';
+  description: string;
+  restTime: number;
+  createdByUser?: boolean;
+  materials?: string[];
+  visualReference?: string | null;
+};
+
+
 function ErrorText({ message }: { message?: string }) {
   if (!message) return null;
   return (
@@ -28,7 +42,8 @@ export default function CreateSessionScreen({ navigation, route }: any) {
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   const [sessionName, setSessionName] = useState(route.params?.sessionName ?? '');
-  const [drills, setDrills] = useState<string[]>(route.params?.selectedDrills ?? []);
+  const [drills, setDrills] = useState<Drill[]>(route.params?.selectedDrills ?? []);
+
   const [objectives, setObjectives] = useState<string[]>(route.params?.objectives ?? []);
   const [materials, setMaterials] = useState<string[]>(route.params?.materials ?? []);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -65,9 +80,10 @@ export default function CreateSessionScreen({ navigation, route }: any) {
     });
   };
 
-  const removeDrill = (tagToRemove: string) => {
-    setDrills((prev) => prev.filter((tag) => tag !== tagToRemove));
-  };
+  const removeDrill = (drillToRemove: Drill) => {
+  setDrills((prev) => prev.filter((drill) => drill.drillName !== drillToRemove.drillName));
+};
+
 
   // Date picker handler
   const handleConfirmDate = (date: Date) => {
@@ -184,22 +200,23 @@ export default function CreateSessionScreen({ navigation, route }: any) {
             </TouchableOpacity>
 
             {drills.length > 0 ? (
-              <View>
-                {drills.map((tag, idx) => (
-                  <View
-                    key={idx}
-                    className="flex-row justify-between items-center bg-green-500 px-4 py-3 rounded-lg mb-3"
-                  >
-                    <Text className="text-white font-semibold text-base">{tag}</Text>
-                    <TouchableOpacity onPress={() => removeDrill(tag)}>
-                      <Text className="text-white font-bold text-xl">×</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text className="text-gray-500 text-sm">No drills selected</Text>
-            )}
+  <View>
+    {drills.map((drill, idx) => (
+      <View
+        key={`${drill.drillName}-${idx}`}
+        className="flex-row justify-between items-center bg-green-500 px-4 py-3 rounded-lg mb-3"
+      >
+        <Text className="text-white font-semibold text-base">{drill.drillName}</Text>
+        <TouchableOpacity onPress={() => removeDrill(drill)}>
+          <Text className="text-white font-bold text-xl">×</Text>
+        </TouchableOpacity>
+      </View>
+    ))}
+  </View>
+) : (
+  <Text className="text-gray-500 text-sm">No drills selected</Text>
+)}
+
             <ErrorText message={errors.drills} />
           </View>
         );
@@ -277,11 +294,12 @@ export default function CreateSessionScreen({ navigation, route }: any) {
             </View>
 
             <View className="mb-4">
-              <Text className="text-gray-700">
-                <Text className="font-bold">Drills: </Text>
-                {drills.length > 0 ? drills.join(', ') : 'None'}
-              </Text>
-            </View>
+  <Text className="text-gray-700">
+    <Text className="font-bold">Drills: </Text>
+    {drills.length > 0 ? drills.map(d => d.drillName).join(', ') : 'None'}
+  </Text>
+</View>
+
 
             <View className="mb-4">
               <Text className="text-gray-700">

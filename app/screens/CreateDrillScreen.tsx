@@ -61,24 +61,28 @@ export default function CreateDrillScreen({ navigation }: any) {
   const handleSubmit = async () => {
     setErrors({});
     const bodyData = {
-      drillName,
-      duration: Number(duration),
-      numberOfSets: Number(numberOfSets),
-      numberOfReps: Number(numberOfReps),
-      restTime: Number(restTime),
-      drillCategory,
-      materials: materials ? materials.split(',').map((m) => m.trim()) : [],
-      description,
-      visualReference: visualReference || null,
-      createdByUser: true,
-    };
+  drillName,
+  duration: duration !== '' ? Number(duration) : undefined,
+  numberOfSets: numberOfSets !== '' ? Number(numberOfSets) : undefined,
+  numberOfReps: numberOfReps !== '' ? Number(numberOfReps) : undefined,
+  restTime: restTime !== '' ? Number(restTime) : undefined,
+  drillCategory,
+  materials: materials ? materials.split(',').map((m) => m.trim()) : [],
+  description,
+  visualReference: visualReference || null,
+  createdByUser: true,
+};
+
 
     try {
+      Alert.alert('Check values', `Duration: ${duration}, Rest Time: ${restTime}`);
       const res = await fetch('http://192.168.2.19:3000/api/drill', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyData),
       });
+      
+
 
       const text = await res.text();
 

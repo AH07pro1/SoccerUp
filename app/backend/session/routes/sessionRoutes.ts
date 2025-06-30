@@ -68,17 +68,18 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
     sessionName: validatedData.sessionName,
     objectives: validatedData.objectives,
     materials: validatedData.materials ?? [],
-    drills: {
-      create: validatedData.drills.map(drillName => ({
-        drillName,
-        duration: 10, 
-        numberOfSets: 1, 
-        numberOfReps: 1,
-        drillCategory: 'fitness', 
-        materials: [],
-        description: `${drillName} description`,
-      })),
-    },
+  drills: {
+  create: validatedData.drills.map((drill: any) => ({
+    drillName: drill.drillName,
+    duration: drill.duration,
+    restTime: drill.restTime,
+    numberOfSets: drill.numberOfSets,
+    numberOfReps: drill.numberOfReps,
+    drillCategory: drill.drillCategory,
+    materials: drill.materials || [],
+    description: drill.description || '',
+  })),
+},
      scheduledDate: validatedData.scheduledDate
   },
 });

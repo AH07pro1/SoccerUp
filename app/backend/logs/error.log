@@ -1,2 +1,9 @@
 {"error":{"clientVersion":"6.10.1","code":"P2011","meta":{"constraint":["createdByUser"],"modelName":"Drill"},"name":"PrismaClientKnownRequestError"},"level":"error","message":"❌ Failed to create drill","timestamp":"2025-06-23T23:35:43.556Z"}
 {"error":{"clientVersion":"6.10.1","code":"P2011","meta":{"constraint":["createdByUser"],"modelName":"Drill"},"name":"PrismaClientKnownRequestError"},"level":"error","message":"❌ Failed to create drill","timestamp":"2025-06-23T23:35:54.513Z"}
+{"error":{"clientVersion":"6.10.1","name":"PrismaClientValidationError"},"level":"error","message":"Error creating session","timestamp":"2025-06-30T16:40:33.467Z"}
+{"error":{"clientVersion":"6.10.1","name":"PrismaClientValidationError"},"level":"error","message":"Error creating session","timestamp":"2025-06-30T16:41:01.109Z"}
+{"error":{"clientVersion":"6.10.1","name":"PrismaClientValidationError"},"level":"error","message":"Error creating session","timestamp":"2025-06-30T16:41:24.383Z"}
+{"error":{"clientVersion":"6.10.1","name":"PrismaClientValidationError"},"level":"error","message":"Error creating session","timestamp":"2025-06-30T16:42:37.657Z"}
+{"error":{"clientVersion":"6.10.1","name":"PrismaClientValidationError"},"level":"error","message":"Error creating session","timestamp":"2025-06-30T16:53:08.881Z"}
+{"error":{"clientVersion":"6.10.1","name":"PrismaClientValidationError"},"level":"error","message":"Error creating session","timestamp":"2025-06-30T17:03:52.880Z"}
+{"error":{"clientVersion":"6.10.1","name":"PrismaClientValidationError"},"level":"error","message":"Error creating session","timestamp":"2025-06-30T17:04:13.971Z"}

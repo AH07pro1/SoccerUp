@@ -5,7 +5,15 @@ import { Ionicons } from '@expo/vector-icons';
 type Drill = {
   id: number;
   drillName: string;
+  duration: number;
+  restTime: number;
+  numberOfSets: number;
+  numberOfReps: number;
+  drillCategory: string;
+  materials: string[];
+  description: string;
 };
+
 
 type Session = {
   id: number;
@@ -18,7 +26,9 @@ type Session = {
 
 export default function SessionDetailScreen({ route, navigation }: any) {
   const { sessionId }: { sessionId: number } = route.params;
+ 
   const [session, setSession] = useState<Session | null>(null);
+   console.log('session detail drills',  session?.drills)
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,14 +36,26 @@ export default function SessionDetailScreen({ route, navigation }: any) {
       try {
         const res = await fetch(`http://192.168.2.19:3000/api/session/${sessionId}`);
         const data = await res.json();
-        console.log('Session detail data:', data);
+        console.log('Full session response:', data); 
         const formatted: Session = {
           id: data.id,
           title: data.sessionName,
           objective: data.objectives.join(', '),
           date: data.scheduledDate.split('T')[0],
           materials: data.materials || [],
-          drills: data.drills || [],
+           drills: data.drills.map((d: any) => ({
+    id: d.id,
+    drillName: d.drillName,
+    duration: d.duration,
+    restTime: d.restTime,
+    numberOfSets: d.numberOfSets,
+    numberOfReps: d.numberOfReps,
+    drillCategory: d.drillCategory,
+    materials: d.materials,
+    description: d.description,
+    visualReference: d.visualReference,
+    createdByUser: d.createdByUser,
+  })), 
         };
         setSession(formatted);
       } catch (err) {
@@ -116,6 +138,7 @@ export default function SessionDetailScreen({ route, navigation }: any) {
 
        <TouchableOpacity
   onPress={() => navigation.navigate('PlaySession', { drills: session.drills })}
+  
   className="mt-4 bg-blue-600 py-3 rounded-lg"
 >
   <Text className="text-white text-center font-semibold">▶️ Play Session</Text>
