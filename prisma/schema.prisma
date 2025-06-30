@@ -50,4 +50,5 @@ enum DrillCategory {
   defending
   goalkeeping
   fitness
+  tactics
 }

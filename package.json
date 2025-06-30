@@ -8,6 +8,9 @@
     "ios": "DARK_MODE=media expo start --ios",
     "web": "DARK_MODE=media expo start --web"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@expo/config": "^11.0.10",
     "@expo/metro-config": "^0.20.15",
@@ -37,6 +40,8 @@
     "react-native-calendars": "^1.129.0",
     "react-native-circular-progress": "^1.4.1",
     "react-native-css-interop": "^0.1.22",
+    "react-native-draggable-flatlist": "^4.0.3",
+    "react-native-gesture-handler": "^2.26.0",
     "react-native-heroicons": "^4.0.0",
     "react-native-modal-datetime-picker": "^18.0.0",
     "react-native-reanimated": "~3.17.4",

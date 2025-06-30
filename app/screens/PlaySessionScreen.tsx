@@ -9,6 +9,17 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 
+import {
+  configureReanimatedLogger,
+  ReanimatedLogLevel,
+} from 'react-native-reanimated';
+
+
+// This is the default configuration
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false, 
+});
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 type Drill = {
@@ -18,16 +29,7 @@ type Drill = {
 };
 
 export default function SessionPlayerScreen({ route, navigation }: any) {
-  const rawDrills: Drill[] = route?.params?.drills || [];
-
-  // ✅ Normalize drills: make sure duration/restTime are numbers
-  const drills: Drill[] = rawDrills.map((d) => ({
-    drillName: d.drillName || 'Unnamed Drill',
-    duration: Number(d.duration) || 1,
-    restTime: Number(d.restTime) || 30,
-  }));
-
-  console.log('Session Player Drills:', drills);
+  const drills: Drill[] = route?.params?.drills || [];
 
   const [currentDrillIndex, setCurrentDrillIndex] = useState(0);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
@@ -52,10 +54,6 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
 
   const totalSessionSeconds =
     drills.reduce((sum, d) => sum + d.duration * 60 + d.restTime, 0) - (drills.at(-1)?.restTime || 0);
-
-    useEffect(() => {
-  console.log('DRILLS RECEIVED IN PLAYER:', JSON.stringify(drills, null, 2));
-}, []);
 
   useEffect(() => {
     if (showCountdown) {

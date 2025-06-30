@@ -1,31 +1,35 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  Animated,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
   Alert,
 } from 'react-native';
 import TagInput from '../components/forms/TagInput';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 
 type Drill = {
   drillName: string;
   duration: number;
   numberOfSets: number;
   numberOfReps: number;
-  drillCategory: 'passing' | 'shooting' | 'dribbling' | 'defending' | 'goalkeeping' | 'fitness';
+  drillCategory:
+    | 'passing'
+    | 'shooting'
+    | 'dribbling'
+    | 'defending'
+    | 'goalkeeping'
+    | 'fitness';
   description: string;
   restTime: number;
   createdByUser?: boolean;
   materials?: string[];
   visualReference?: string | null;
 };
-
 
 function ErrorText({ message }: { message?: string }) {
   if (!message) return null;
@@ -39,21 +43,16 @@ function ErrorText({ message }: { message?: string }) {
 const totalCards = 5; // total cards including date/time card
 
 export default function CreateSessionScreen({ navigation, route }: any) {
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-
   const [sessionName, setSessionName] = useState(route.params?.sessionName ?? '');
   const [drills, setDrills] = useState<Drill[]>(route.params?.selectedDrills ?? []);
-
   const [objectives, setObjectives] = useState<string[]>(route.params?.objectives ?? []);
   const [materials, setMaterials] = useState<string[]>(route.params?.materials ?? []);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
   const [sessionDate, setSessionDate] = useState<Date>(
     route.params?.sessionDate ? new Date(route.params.sessionDate) : new Date()
   );
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
   const [isTimePickerVisible, setTimePickerVisible] = useState(false);
-
   const [currentCard, setCurrentCard] = useState(route.params?.currentCard ?? 0);
 
   useEffect(() => {
@@ -72,18 +71,15 @@ export default function CreateSessionScreen({ navigation, route }: any) {
     route.params?.currentCard,
   ]);
 
+  // Simple card switch without animation
   const goToCard = (index: number) => {
     if (index < 0 || index >= totalCards) return;
-    Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-      setCurrentCard(index);
-      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-    });
+    setCurrentCard(index);
   };
 
   const removeDrill = (drillToRemove: Drill) => {
-  setDrills((prev) => prev.filter((drill) => drill.drillName !== drillToRemove.drillName));
-};
-
+    setDrills((prev) => prev.filter((drill) => drill.drillName !== drillToRemove.drillName));
+  };
 
   // Date picker handler
   const handleConfirmDate = (date: Date) => {
@@ -93,7 +89,7 @@ export default function CreateSessionScreen({ navigation, route }: any) {
     setDatePickerVisible(false);
   };
 
-  // Time picker handler with validation: disallow time before now if date is today
+  // Time picker handler with validation
   const handleConfirmTime = (time: Date) => {
     const now = new Date();
 
@@ -158,6 +154,23 @@ export default function CreateSessionScreen({ navigation, route }: any) {
     }
   };
 
+  const renderDrillItem = ({ item, drag, isActive }: RenderItemParams<Drill>) => {
+    return (
+      <TouchableOpacity
+        onLongPress={drag}
+        disabled={isActive}
+        className={`flex-row justify-between items-center bg-green-500 px-4 py-3 rounded-lg mb-3 ${
+          isActive ? 'bg-green-700' : ''
+        }`}
+      >
+        <Text className="text-white font-semibold text-base">{item.drillName}</Text>
+        <TouchableOpacity onPress={() => removeDrill(item)}>
+          <Text className="text-white font-bold text-xl">×</Text>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
+  };
+
   const renderCard = () => {
     switch (currentCard) {
       case 0:
@@ -181,7 +194,7 @@ export default function CreateSessionScreen({ navigation, route }: any) {
       case 1:
         return (
           <View className="bg-gray-100 p-4 rounded-2xl mb-6">
-            <Text className="text-lg font-semibold text-gray-800 mb-4">Select Drills</Text>
+            <Text className="text-lg font-semibold text-gray-800 mb-4">Select & Order Drills</Text>
 
             <TouchableOpacity
               onPress={() =>
@@ -200,22 +213,18 @@ export default function CreateSessionScreen({ navigation, route }: any) {
             </TouchableOpacity>
 
             {drills.length > 0 ? (
-  <View>
-    {drills.map((drill, idx) => (
-      <View
-        key={`${drill.drillName}-${idx}`}
-        className="flex-row justify-between items-center bg-green-500 px-4 py-3 rounded-lg mb-3"
-      >
-        <Text className="text-white font-semibold text-base">{drill.drillName}</Text>
-        <TouchableOpacity onPress={() => removeDrill(drill)}>
-          <Text className="text-white font-bold text-xl">×</Text>
-        </TouchableOpacity>
-      </View>
-    ))}
-  </View>
-) : (
-  <Text className="text-gray-500 text-sm">No drills selected</Text>
-)}
+              <DraggableFlatList
+                data={drills}
+                keyExtractor={(item) => item.drillName}
+                renderItem={renderDrillItem}
+                onDragEnd={({ data }) => setDrills(data)}
+                activationDistance={10}
+                containerStyle={{ flexGrow: 0 }}
+                style={{ maxHeight: 300 }} // limit height to prevent card from expanding too much
+              />
+            ) : (
+              <Text className="text-gray-500 text-sm">No drills selected</Text>
+            )}
 
             <ErrorText message={errors.drills} />
           </View>
@@ -240,9 +249,7 @@ export default function CreateSessionScreen({ navigation, route }: any) {
               <Text className="text-white text-center font-semibold text-base">Select Time</Text>
             </TouchableOpacity>
 
-            <Text className="text-gray-700 mb-1">
-              Selected Date: {sessionDate.toDateString()}
-            </Text>
+            <Text className="text-gray-700 mb-1">Selected Date: {sessionDate.toDateString()}</Text>
             <Text className="text-gray-700 mb-2">
               Selected Time: {sessionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
@@ -251,7 +258,7 @@ export default function CreateSessionScreen({ navigation, route }: any) {
               isVisible={isDatePickerVisible}
               mode="date"
               date={sessionDate}
-              minimumDate={new Date()} // disallow past dates
+              minimumDate={new Date()}
               onConfirm={handleConfirmDate}
               onCancel={() => setDatePickerVisible(false)}
             />
@@ -260,7 +267,7 @@ export default function CreateSessionScreen({ navigation, route }: any) {
               isVisible={isTimePickerVisible}
               mode="time"
               date={sessionDate}
-              onConfirm={handleConfirmTime} // manual validation inside
+              onConfirm={handleConfirmTime}
               onCancel={() => setTimePickerVisible(false)}
             />
           </View>
@@ -282,9 +289,7 @@ export default function CreateSessionScreen({ navigation, route }: any) {
       case 4:
         return (
           <View className="bg-gray-100 p-6 rounded-2xl mb-6">
-            <Text className="text-xl font-semibold text-gray-800 mb-6 text-center">
-              Session Overview
-            </Text>
+            <Text className="text-xl font-semibold text-gray-800 mb-6 text-center">Session Overview</Text>
 
             <View className="mb-4">
               <Text className="text-gray-700">
@@ -294,12 +299,11 @@ export default function CreateSessionScreen({ navigation, route }: any) {
             </View>
 
             <View className="mb-4">
-  <Text className="text-gray-700">
-    <Text className="font-bold">Drills: </Text>
-    {drills.length > 0 ? drills.map(d => d.drillName).join(', ') : 'None'}
-  </Text>
-</View>
-
+              <Text className="text-gray-700">
+                <Text className="font-bold">Drills: </Text>
+                {drills.length > 0 ? drills.map((d) => d.drillName).join(', ') : 'None'}
+              </Text>
+            </View>
 
             <View className="mb-4">
               <Text className="text-gray-700">
@@ -348,44 +352,42 @@ export default function CreateSessionScreen({ navigation, route }: any) {
         </Text>
       </View>
 
-      <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
+      <View>
         <Text className="text-3xl font-bold text-green-600 mb-6 text-center">
           Create a Session
         </Text>
 
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {renderCard()}
+        {renderCard()}
 
-          <View className="flex-row justify-between">
-            {currentCard > 0 && (
-              <TouchableOpacity
-                onPress={() => goToCard(currentCard - 1)}
-                className="bg-gray-300 px-6 py-3 rounded-lg"
-              >
-                <Text className="text-gray-700 font-semibold">Back</Text>
-              </TouchableOpacity>
-            )}
+        <View className="flex-row justify-between mt-4">
+          {currentCard > 0 && (
+            <TouchableOpacity
+              onPress={() => goToCard(currentCard - 1)}
+              className="bg-gray-300 px-6 py-3 rounded-lg"
+            >
+              <Text className="text-gray-700 font-semibold">Back</Text>
+            </TouchableOpacity>
+          )}
 
-            {currentCard < totalCards - 1 && (
-              <TouchableOpacity
-                onPress={() => goToCard(currentCard + 1)}
-                className="bg-green-600 px-6 py-3 rounded-lg"
-              >
-                <Text className="text-white font-semibold">Next</Text>
-              </TouchableOpacity>
-            )}
+          {currentCard < totalCards - 1 && (
+            <TouchableOpacity
+              onPress={() => goToCard(currentCard + 1)}
+              className="bg-green-600 px-6 py-3 rounded-lg"
+            >
+              <Text className="text-white font-semibold">Next</Text>
+            </TouchableOpacity>
+          )}
 
-            {currentCard === totalCards - 1 && (
-              <TouchableOpacity
-                onPress={handleSubmit}
-                className="bg-green-600 px-6 py-3 rounded-lg flex-1 ml-2"
-              >
-                <Text className="text-white font-semibold text-center">Save Session</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </ScrollView>
-      </Animated.View>
+          {currentCard === totalCards - 1 && (
+            <TouchableOpacity
+              onPress={handleSubmit}
+              className="bg-green-600 px-6 py-3 rounded-lg flex-1 ml-2"
+            >
+              <Text className="text-white font-semibold text-center">Save Session</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
     </KeyboardAvoidingView>
   );
 }

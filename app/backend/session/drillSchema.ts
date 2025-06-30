@@ -8,6 +8,7 @@ export const drillCategoryEnum = z.enum([
   'defending',
   'goalkeeping',
   'fitness',
+  'tactics' // Added 'tactics' as per your schema
 ]);
 
 const drillSchema = z.object({
