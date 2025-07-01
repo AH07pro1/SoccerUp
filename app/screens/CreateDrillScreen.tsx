@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -23,20 +23,22 @@ function ErrorText({ message }: { message?: string }) {
 
 const totalCards = 3;
 
-export default function CreateDrillScreen({ navigation }: any) {
+export default function CreateDrillScreen({ navigation, route }: any) {
+  const onDrillUpdated = route.params?.onDrillUpdated;
+  const isEditMode = !!route.params?.drill;
+  const drillData = route.params?.drill;
+
   const [currentCard, setCurrentCard] = useState(0);
 
-  const [drillName, setDrillName] = useState('');
-  const [duration, setDuration] = useState('');
-  const [restTime, setRestTime] = useState('');
-  const [drillCategory, setDrillCategory] = useState('passing');
-
-  const [numberOfSets, setNumberOfSets] = useState('');
-  const [numberOfReps, setNumberOfReps] = useState('');
-
-  const [materials, setMaterials] = useState('');
-  const [visualReference, setVisualReference] = useState('');
-  const [description, setDescription] = useState('');
+  const [drillName, setDrillName] = useState(drillData?.drillName ?? '');
+  const [duration, setDuration] = useState(drillData?.duration?.toString() ?? '');
+  const [restTime, setRestTime] = useState(drillData?.restTime?.toString() ?? '');
+  const [drillCategory, setDrillCategory] = useState(drillData?.drillCategory ?? 'passing');
+  const [numberOfSets, setNumberOfSets] = useState(drillData?.numberOfSets?.toString() ?? '');
+  const [numberOfReps, setNumberOfReps] = useState(drillData?.numberOfReps?.toString() ?? '');
+  const [materials, setMaterials] = useState(drillData?.materials?.join(', ') ?? '');
+  const [visualReference, setVisualReference] = useState(drillData?.visualReference ?? '');
+  const [description, setDescription] = useState(drillData?.description ?? '');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -58,35 +60,55 @@ export default function CreateDrillScreen({ navigation }: any) {
     });
   };
 
+  useEffect(() => {
+  if (route.params) {
+    if (route.params.drillName !== undefined) setDrillName(route.params.drillName);
+    if (route.params.duration !== undefined) setDuration(route.params.duration);
+    if (route.params.numberOfSets !== undefined) setNumberOfSets(route.params.numberOfSets);
+    if (route.params.numberOfReps !== undefined) setNumberOfReps(route.params.numberOfReps);
+    if (route.params.restTime !== undefined) setRestTime(route.params.restTime);
+    if (route.params.drillCategory !== undefined) setDrillCategory(route.params.drillCategory);
+    if (route.params.materials !== undefined) setMaterials(route.params.materials);
+    if (route.params.visualReference !== undefined) setVisualReference(route.params.visualReference);
+    if (route.params.description !== undefined) setDescription(route.params.description);
+    if (route.params.currentCard !== undefined) setCurrentCard(route.params.currentCard);
+  }
+}, [route.params]);
+
   const handleSubmit = async () => {
     setErrors({});
     const bodyData = {
-  drillName,
-  duration: duration !== '' ? Number(duration) : undefined,
-  numberOfSets: numberOfSets !== '' ? Number(numberOfSets) : undefined,
-  numberOfReps: numberOfReps !== '' ? Number(numberOfReps) : undefined,
-  restTime: restTime !== '' ? Number(restTime) : undefined,
-  drillCategory,
-  materials: materials ? materials.split(',').map((m) => m.trim()) : [],
-  description,
-  visualReference: visualReference || null,
-  createdByUser: true,
-};
-
+      drillName,
+      duration: duration !== '' ? Number(duration) : undefined,
+      numberOfSets: numberOfSets !== '' ? Number(numberOfSets) : undefined,
+      numberOfReps: numberOfReps !== '' ? Number(numberOfReps) : undefined,
+      restTime: restTime !== '' ? Number(restTime) : undefined,
+      drillCategory,
+      materials: materials ? materials.split(',').map((m: any) => m.trim()) : [],
+      description,
+      visualReference: visualReference || null,
+      createdByUser: isEditMode ? drillData.createdByUser : true,
+    };
+    console.log('drillId', drillData?.id);
 
     try {
       Alert.alert('Check values', `Duration: ${duration}, Rest Time: ${restTime}`);
-      const res = await fetch('http://192.168.2.19:3000/api/drill', {
-        method: 'POST',
+      const endpoint = isEditMode
+        ? `http://192.168.2.19:3000/api/drill/${drillData.id}`
+        : 'http://192.168.2.19:3000/api/drill';
+
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const res = await fetch(endpoint, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyData),
       });
+
       
 
-
-      const text = await res.text();
-
       if (!res.ok) {
+        const text = await res.text();
         try {
           const errorData = JSON.parse(text);
           if (errorData.errors) {
@@ -107,8 +129,11 @@ export default function CreateDrillScreen({ navigation }: any) {
         }
         return;
       }
-
-      Alert.alert('Success', 'Drill created successfully');
+      const updatedDrill = await res.json();
+      Alert.alert('Success', isEditMode ? 'Drill updated successfully' : 'Drill created successfully');
+      if (isEditMode && onDrillUpdated) {
+        route.params.onDrillUpdated(updatedDrill);
+      }
       navigation.goBack();
     } catch (err) {
       Alert.alert('Error', 'Network error, try again later');
@@ -267,7 +292,9 @@ export default function CreateDrillScreen({ navigation }: any) {
       </View>
 
       <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
-        <Text className="text-3xl font-bold text-green-600 mb-6 text-center">New Drill</Text>
+        <Text className="text-3xl font-bold text-green-600 mb-6 text-center">
+          {isEditMode ? 'Edit Drill' : 'New Drill'}
+        </Text>
 
         <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {renderCard()}

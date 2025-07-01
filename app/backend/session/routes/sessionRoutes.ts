@@ -92,4 +92,46 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
+// PUT update a session (except drills)
+router.put('/:id', async (req: Request, res: Response): Promise<any> => {
+  const sessionId = parseInt(req.params.id);
+  if (isNaN(sessionId)) return res.status(400).json({ error: 'Invalid session ID' });
+
+  const result = sessionSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ errors: result.error.format() });
+  }
+
+  try {
+    const updatedSession = await prisma.session.update({
+      where: { id: sessionId },
+      data: {
+        sessionName: result.data.sessionName,
+        objectives: result.data.objectives,
+        materials: result.data.materials ?? [],
+        scheduledDate: result.data.scheduledDate,
+      },
+    });
+    res.status(200).json(updatedSession);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update session' });
+  }
+});
+
+
+// DELETE a session (and its drills)
+router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
+  const sessionId = parseInt(req.params.id);
+  if (isNaN(sessionId)) return res.status(400).json({ error: 'Invalid session ID' });
+
+  try {
+    await prisma.drill.deleteMany({ where: { sessionId } });
+    await prisma.session.delete({ where: { id: sessionId } });
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete session' });
+  }
+});
+
+
 export default router;

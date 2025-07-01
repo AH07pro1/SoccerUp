@@ -1,17 +1,24 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Linking, Dimensions } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Linking,
+  Dimensions,
+  Alert,
+} from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { WebView } from 'react-native-webview';
 
-export default function DrillDetailScreen({ route }: any) {
-  const { drill } = route.params;
+export default function DrillDetailScreen({ route, navigation }: any) {
   const screenWidth = Dimensions.get('window').width;
+  const [drill, setDrill] = useState(route.params.drill); // local state
 
   const isYouTubeLink =
     drill.visualReference?.includes('youtube.com') ||
     drill.visualReference?.includes('youtu.be');
 
-  // Initialize player only if not YouTube
   const player =
     !isYouTubeLink && drill.visualReference
       ? useVideoPlayer(drill.visualReference, (player) => {
@@ -20,17 +27,8 @@ export default function DrillDetailScreen({ route }: any) {
         })
       : null;
 
-  const openVideoLink = () => {
-    if (drill.visualReference) {
-      Linking.openURL(drill.visualReference);
-    }
-  };
-
-  // Helper to get embeddable YouTube URL
   const getYouTubeEmbedUrl = (url: string) => {
-    // Extract video ID from youtube URL
-    const regex =
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
     const match = url.match(regex);
     const videoId = match ? match[1] : null;
     return videoId
@@ -38,15 +36,68 @@ export default function DrillDetailScreen({ route }: any) {
       : url;
   };
 
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Drill',
+      'Are you sure you want to delete this drill?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await fetch(
+                `http://192.168.2.19:3000/api/drill/${drill.id}`,
+                { method: 'DELETE' }
+              );
+              if (res.ok) {
+                Alert.alert('Deleted', 'Drill was deleted successfully.');
+                navigation.goBack();
+              } else {
+                Alert.alert('Error', 'Failed to delete drill.');
+              }
+            } catch (err) {
+              Alert.alert('Error', 'Network error while deleting drill.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   return (
     <ScrollView className="flex-1 bg-white">
       <View className="px-6 pt-6 pb-10">
-        {/* Title */}
-        <Text className="text-3xl font-extrabold text-gray-900 mb-2">
-          {drill.drillName}
-        </Text>
+        {/* Top Action Row */}
+        <View className="flex-row justify-between items-center mb-3">
+          <Text className="text-3xl font-extrabold text-gray-900">
+            {drill.drillName}
+          </Text>
 
-        {/* Created by you */}
+          <View className="flex-row space-x-3">
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('CreateDrill', {
+                  drill,
+                  isEditMode: true,
+                  onDrillUpdated: (updatedDrill: any) => setDrill(updatedDrill),
+                })
+              }
+              className="bg-yellow-400 px-4 py-2 rounded-lg"
+            >
+              <Text className="text-white font-semibold">Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleDelete}
+              className="bg-red-600 px-4 py-2 rounded-lg"
+            >
+              <Text className="text-white font-semibold">Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {drill.createdByUser && (
           <Text className="bg-blue-600 text-white px-3 py-1 rounded-full self-start text-sm mb-4">
             You Created This
@@ -81,7 +132,7 @@ export default function DrillDetailScreen({ route }: any) {
             : 'No description available for this drill.'}
         </Text>
 
-        {/* Video Section */}
+        {/* Video */}
         <Text className="text-lg font-semibold text-gray-900 mt-8 mb-2">Video</Text>
 
         {drill.visualReference ? (

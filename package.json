@@ -9,7 +9,7 @@
     "web": "DARK_MODE=media expo start --web"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node prisma/seed.js"
   },
   "dependencies": {
     "@expo/config": "^11.0.10",
