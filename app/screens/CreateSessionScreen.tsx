@@ -176,16 +176,30 @@ export default function CreateSessionScreen({ navigation, route }: any) {
           <View className="bg-gray-100 p-4 rounded-2xl mb-6">
             <Text className="text-lg font-semibold text-gray-800 mb-4">Select & Order Drills</Text>
             <TouchableOpacity
-              onPress={() =>
-                navigation.navigate('DrillList', {
-                  sessionName,
-                  selectedDrills: drills,
-                  objectives,
-                  materials,
-                  sessionDate: sessionDate.toISOString(),
-                  currentCard,
-                })
-              }
+             onPress={() =>
+  navigation.navigate('DrillList', {
+    sessionName,
+    selectedDrills: drills,
+    objectives,
+    materials,
+    sessionDate: sessionDate.toISOString(),
+    currentCard,
+    onDrillsSelected: (newDrills: Drill[]) => {
+  setDrills((prevDrills) => {
+    const existingIds = new Set(prevDrills.map((d) => d.drillName));
+    const mergedDrills = [...prevDrills];
+    for (const drill of newDrills) {
+      if (!existingIds.has(drill.drillName)) {
+        mergedDrills.push(drill);
+      }
+    }
+    return mergedDrills;
+  });
+},
+
+  })
+}
+
               className="bg-blue-600 py-3 rounded-lg mb-4"
             >
               <Text className="text-white text-center font-semibold text-base">Choose Drills</Text>

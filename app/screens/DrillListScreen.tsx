@@ -67,14 +67,8 @@ export default function DrillListScreen({ navigation, route }: any) {
 
   const handleOkPress = () => {
    const selectedDrillObjects = drills.filter((d) => selectedDrills.includes(d.id));
-navigation.navigate('CreateSession', {
-  selectedDrills: selectedDrillObjects,
-  sessionName: route.params?.sessionName ?? '',
-  objectives: route.params?.objectives ?? [],
-  materials: route.params?.materials ?? [],
-  currentCard: 1,
-});
-
+navigation.goBack();
+route.params?.onDrillsSelected?.(selectedDrillObjects);
 
   };
 

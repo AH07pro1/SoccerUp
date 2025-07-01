@@ -113,4 +113,16 @@ router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
+router.get('/:id', async (req: Request, res: Response): Promise<any> => {
+  const drillId = parseInt(req.params.id);
+  if (isNaN(drillId)) return res.status(400).json({ error: 'Invalid drill ID' });
+
+  try {
+    const drill = await prisma.drill.findUnique({ where: { id: drillId } });
+    if (!drill) return res.status(404).json({ error: 'Drill not found' });
+    res.json(drill);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch drill' });
+  }
+});
 export default router;
