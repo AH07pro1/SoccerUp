@@ -41,6 +41,7 @@ model Drill {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   createdByUser   Boolean       @default(false) // indicates if the drill was created by a user
+  basedOnName     String?
 }
 
 enum DrillCategory {

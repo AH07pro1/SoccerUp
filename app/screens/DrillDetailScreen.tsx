@@ -25,6 +25,7 @@ type Drill = {
   createdByUser?: boolean;
   restTime: number;
   visualReference?: string | null;
+  basedOnName?: string;
 };
 
 
@@ -33,6 +34,10 @@ export default function DrillDetailScreen({ route, navigation }: any) {
   const screenWidth = Dimensions.get('window').width;
   const [drill, setDrill] = useState<Drill | null>(null);
   const drillId = route.params?.drill?.id;
+  const { drill: intiialDrill, sessionId, onVariantCreated } = route.params;
+
+
+
 
   const isYouTubeLink =
     drill?.visualReference?.includes('youtube.com') ||
@@ -54,22 +59,29 @@ export default function DrillDetailScreen({ route, navigation }: any) {
       ? `https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1`
       : url;
   };
-  useFocusEffect(
+ useFocusEffect(
   useCallback(() => {
-    const fetchDrill = async () => {
-      try {
-        const res = await fetch(`http://192.168.2.19:3000/api/drill/${drillId}`);
-        if (!res.ok) throw new Error('Failed to fetch drill');
-        const data = await res.json();
-        setDrill(data);
-      } catch (err) {
-        Alert.alert('Error', 'Could not load updated drill.');
-      }
-    };
 
-    if (drillId) fetchDrill();
-  }, [drillId])
+    const drillFromParams = route.params?.drill;
+
+    if (drillFromParams) {
+      setDrill(drillFromParams);
+    } else if (drillId) {
+      const fetchDrill = async () => {
+        try {
+          const res = await fetch(`http://192.168.2.19:3000/api/drill/${drillId}`);
+          if (!res.ok) throw new Error('Failed to fetch drill');
+          const data = await res.json();
+          setDrill(data);
+        } catch (err) {
+          Alert.alert('Error', 'Could not load updated drill.');
+        }
+      };
+      fetchDrill();
+    }
+  }, [route.params?.drill, drillId])
 );
+
 
   const handleDelete = () => {
     Alert.alert(
@@ -114,12 +126,21 @@ export default function DrillDetailScreen({ route, navigation }: any) {
           <View className="flex-row space-x-3">
             <TouchableOpacity
               onPress={() =>
-                navigation.navigate('CreateDrill', {
-                  drill,
-                  isEditMode: true,
-                  onDrillUpdated: (updatedDrill: any) => setDrill(updatedDrill),
-                })
-              }
+  navigation.navigate('CreateDrill', {
+  drill,
+  isEditMode: true,
+  isSystemDrill: !drill?.createdByUser,
+  sessionId: route.params?.sessionId, // Pass sessionId here
+  onDrillUpdated: (updatedDrill: Drill) => {
+    setDrill(updatedDrill);
+    if (route.params?.onVariantCreated) {
+      route.params.onVariantCreated(updatedDrill);
+    }
+  },
+})
+
+}
+
               className="bg-yellow-400 px-4 py-2 rounded-lg"
             >
               <Text className="text-white font-semibold">Edit</Text>
@@ -138,6 +159,12 @@ export default function DrillDetailScreen({ route, navigation }: any) {
             You Created This
           </Text>
         )}
+        {drill?.basedOnName && (
+  <Text className="bg-purple-600 text-white px-3 py-1 rounded-full self-start text-sm mb-4">
+    Variant of "{drill.basedOnName}"
+  </Text>
+)}
+
 
         {/* Info Card */}
         <View className="bg-gray-100 p-4 rounded-2xl mb-6 space-y-2">

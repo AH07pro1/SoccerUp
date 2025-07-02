@@ -78,6 +78,7 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
     drillCategory: drill.drillCategory,
     materials: drill.materials || [],
     description: drill.description || '',
+    basedOnName: drill.basedOnName || null, // Optional field for variants
   })),
 },
      scheduledDate: validatedData.scheduledDate
@@ -130,6 +131,66 @@ router.delete('/:id', async (req: Request, res: Response): Promise<any> => {
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete session' });
+  }
+});
+
+//this is to update  a drill within a session
+
+router.put('/:sessionId/drill/:drillId', async (req: Request, res: Response): Promise<any> => {
+  logger.info('HELLO PEOLE HELLOLE')
+  logger.info('🧾 PUT /:sessionId/drill/:drillId called', {
+  body: req.body,
+});
+
+  const sessionId = parseInt(req.params.sessionId);
+  const drillId = parseInt(req.params.drillId);
+  const {
+    drillName,
+    duration,
+    restTime,
+    numberOfSets,
+    numberOfReps,
+    drillCategory,
+    materials,
+    description,
+    visualReference,
+    createdByUser,
+    basedOnName,
+  } = req.body;
+
+  if (isNaN(sessionId) || isNaN(drillId)) {
+    return res.status(400).json({ error: 'Invalid session or drill ID' });
+  }
+
+  try {
+    // Check drill belongs to session (optional but safer)
+    const drill = await prisma.drill.findUnique({ where: { id: drillId } });
+    if (!drill || drill.sessionId !== sessionId) {
+      return res.status(404).json({ error: 'Drill not found in session' });
+    }
+
+    // Update drill with new variant data
+    const updatedDrill = await prisma.drill.update({
+      where: { id: drillId },
+      data: {
+        drillName,
+        duration,
+        restTime,
+        numberOfSets,
+        numberOfReps,
+        drillCategory,
+        materials,
+        description,
+        visualReference,
+        createdByUser,
+        basedOnName,
+      },
+    });
+
+    res.status(200).json(updatedDrill);
+  } catch (error) {
+    logger.error('Error updating drill in session', { error });
+    res.status(500).json({ error: 'Failed to update drill in session' });
   }
 });
 

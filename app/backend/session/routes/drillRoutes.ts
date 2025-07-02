@@ -59,6 +59,7 @@ router.post('/', async (req: Request, res: Response): Promise<any> => {
         drillCategory: validatedData.drillCategory,
         materials: validatedData.materials,
         createdByUser: validatedData.createdByUser,
+        basedOnName: validatedData.basedOnName, // Optional field for variants
       },
     });
 

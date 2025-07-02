@@ -169,7 +169,26 @@ export default function SessionDetailScreen({ route, navigation }: any) {
             session.drills.map((drill) => (
               <TouchableOpacity
                 key={drill.id}
-                onPress={() => navigation.navigate('DrillDetail', { drill })}
+                onPress={() =>
+ navigation.navigate('DrillDetail', {
+  drill,
+  sessionId: session.id,
+  onVariantCreated: (variantDrill: Drill) => {
+    setSession((prev) =>
+      prev
+        ? {
+            ...prev,
+            drills: prev.drills?.map((d) =>
+              d.id === drill.id ? variantDrill : d
+            ),
+          }
+        : prev
+    );
+  },
+})
+
+}
+
                 activeOpacity={0.8}
                 className="bg-white rounded-2xl shadow-md p-5 flex-row items-center mb-4"
               >

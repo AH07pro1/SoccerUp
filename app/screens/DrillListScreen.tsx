@@ -22,6 +22,7 @@ type Drill = {
   materials: string[];
   description: string;
   createdByUser?: boolean;
+  basedOnName?: string;
 };
 
 export default function DrillListScreen({ navigation, route }: any) {
@@ -66,7 +67,13 @@ export default function DrillListScreen({ navigation, route }: any) {
   };
 
   const handleOkPress = () => {
-   const selectedDrillObjects = drills.filter((d) => selectedDrills.includes(d.id));
+   const selectedDrillObjects = drills
+  .filter((d) => selectedDrills.includes(d.id))
+  .map((d) => ({
+    ...d,
+    basedOnName: d.basedOnName ?? null, // make sure it's passed explicitly
+  }));
+
 navigation.goBack();
 route.params?.onDrillsSelected?.(selectedDrillObjects);
 

@@ -23,12 +23,14 @@ type Drill = {
     | 'dribbling'
     | 'defending'
     | 'goalkeeping'
-    | 'fitness';
+    | 'fitness'
+    | 'tactics';
   description: string;
   restTime: number;
   createdByUser?: boolean;
   materials?: string[];
   visualReference?: string | null;
+  basedOnName?: string; // Optional field for variants
 };
 
 function ErrorText({ message }: { message?: string }) {
@@ -98,7 +100,10 @@ export default function CreateSessionScreen({ navigation, route }: any) {
     setErrors({});
     const sessionData = {
       sessionName,
-      drills,
+       drills: drills.map((d) => ({
+    ...d,
+    basedOnName: d.basedOnName ?? '', // Fix null issue
+  })),
       objectives,
       materials,
       scheduledDate: sessionDate.toISOString(),

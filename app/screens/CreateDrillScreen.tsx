@@ -26,7 +26,19 @@ const totalCards = 3;
 export default function CreateDrillScreen({ navigation, route }: any) {
   const onDrillUpdated = route.params?.onDrillUpdated;
   const isEditMode = !!route.params?.drill;
-  const drillData = route.params?.drill;
+const drillData = route.params?.drill;
+const isSystemDrill = route.params?.isSystemDrill; // 👈 added
+// const creatingVariant = isEditMode && isSystemDrill; // i remove this line so if you create a variant and update it, it will not create a new variant
+const creatingVariant =
+  isEditMode && isSystemDrill && !drillData?.basedOnName;
+
+const sessionId = route.params?.sessionId;
+
+
+
+
+
+
 
   const [currentCard, setCurrentCard] = useState(0);
 
@@ -45,6 +57,7 @@ export default function CreateDrillScreen({ navigation, route }: any) {
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   const goToCard = (index: number) => {
+    
     if (index < 0 || index >= totalCards) return;
     Animated.timing(fadeAnim, {
       toValue: 0,
@@ -75,70 +88,124 @@ export default function CreateDrillScreen({ navigation, route }: any) {
   }
 }, [route.params]);
 
-  const handleSubmit = async () => {
-    setErrors({});
-    const bodyData = {
-      drillName,
-      duration: duration !== '' ? Number(duration) : undefined,
-      numberOfSets: numberOfSets !== '' ? Number(numberOfSets) : undefined,
-      numberOfReps: numberOfReps !== '' ? Number(numberOfReps) : undefined,
-      restTime: restTime !== '' ? Number(restTime) : undefined,
-      drillCategory,
-      materials: materials ? materials.split(',').map((m: any) => m.trim()) : [],
-      description,
-      visualReference: visualReference || null,
-      createdByUser: isEditMode ? drillData.createdByUser : true,
-    };
-    console.log('drillId', drillData?.id);
+ const handleSubmit = async () => {
+  setErrors({});
+  const bodyData = {
+    drillName,
+    duration: duration !== '' ? Number(duration) : undefined,
+    numberOfSets: numberOfSets !== '' ? Number(numberOfSets) : undefined,
+    numberOfReps: numberOfReps !== '' ? Number(numberOfReps) : undefined,
+    restTime: restTime !== '' ? Number(restTime) : undefined,
+    drillCategory,
+    materials: materials ? materials.split(',').map((m: any) => m.trim()) : [],
+    description,
+    visualReference: visualReference || null,
+    createdByUser: creatingVariant || !isEditMode ? true : drillData.createdByUser,
+    basedOnName: creatingVariant ? drillData?.drillName : undefined,
+  };
 
-    try {
-      Alert.alert('Check values', `Duration: ${duration}, Rest Time: ${restTime}`);
-      const endpoint = isEditMode
+  console.log('Submitting drill with data:', bodyData);
+  console.log('Mode:', { isEditMode, creatingVariant });
+  console.log('Drill ID:', drillData?.id);
+  console.log('Session ID:', sessionId);
+
+  try {
+    Alert.alert('Check values', `Duration: ${duration}, Rest Time: ${restTime}`);
+
+    const method = creatingVariant ? 'POST' : isEditMode ? 'PUT' : 'POST';
+    const endpoint = creatingVariant
+      ? `http://192.168.2.19:3000/api/drill`
+      : isEditMode
         ? `http://192.168.2.19:3000/api/drill/${drillData.id}`
         : 'http://192.168.2.19:3000/api/drill';
 
-      const method = isEditMode ? 'PUT' : 'POST';
+    console.log('Fetch method:', method);
+    console.log('Fetch endpoint:', endpoint);
 
-      const res = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyData),
-      });
+    const res = await fetch(endpoint, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bodyData),
+    });
 
-      
+    console.log('Response status:', res.status);
 
-      if (!res.ok) {
-        const text = await res.text();
-        try {
-          const errorData = JSON.parse(text);
-          if (errorData.errors) {
-            const parsedErrors: Record<string, string> = {};
-            for (const key in errorData.errors) {
-              const errs = errorData.errors[key]?._errors;
-              if (Array.isArray(errs) && errs.length > 0) {
-                parsedErrors[key] = errs[0];
-              }
+    if (!res.ok) {
+      const text = await res.text();
+      console.log('Error response text:', text);
+      try {
+        const errorData = JSON.parse(text);
+        if (errorData.errors) {
+          const parsedErrors: Record<string, string> = {};
+          for (const key in errorData.errors) {
+            const errs = errorData.errors[key]?._errors;
+            if (Array.isArray(errs) && errs.length > 0) {
+              parsedErrors[key] = errs[0];
             }
-            setErrors(parsedErrors);
-            return;
           }
-          const errorMessage = errorData.error || 'Failed to create drill';
-          Alert.alert('Error', errorMessage);
-        } catch {
-          Alert.alert('Error', 'Unexpected server error');
+          console.log('Parsed validation errors:', parsedErrors);
+          setErrors(parsedErrors);
+          return;
         }
+        const errorMessage = errorData.error || 'Failed to create drill';
+        Alert.alert('Error', errorMessage);
+      } catch {
+        Alert.alert('Error', 'Unexpected server error');
+      }
+      return;
+    }
+
+    const updatedDrill = await res.json();
+    console.log('Updated drill from server:', updatedDrill);
+
+    Alert.alert('Success', isEditMode ? 'Drill updated successfully' : 'Drill created successfully');
+
+    if (isEditMode && onDrillUpdated) {
+      console.log('Calling onDrillUpdated callback');
+      onDrillUpdated(updatedDrill);
+    }
+
+    if (creatingVariant) {
+      console.log('Creating variant - preparing to update session drill...');
+      if (!sessionId) {
+        Alert.alert('Error', 'Session ID missing, cannot update session drill');
         return;
       }
-      const updatedDrill = await res.json();
-      Alert.alert('Success', isEditMode ? 'Drill updated successfully' : 'Drill created successfully');
-      if (isEditMode && onDrillUpdated) {
-        route.params.onDrillUpdated(updatedDrill);
+
+      console.log('Updating session drill:', { sessionId, drillId: drillData.id, updatedDrill });
+
+      try {
+        const updateRes = await fetch(
+          `http://192.168.2.19:3000/api/session/${sessionId}/drill/${drillData.id}`, // original drill id here
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedDrill), // send updated drill data to replace old one
+          }
+        );
+
+        console.log('Session drill update response status:', updateRes.status);
+
+        if (!updateRes.ok) {
+          Alert.alert('Warning', 'Variant created but failed to update session drill');
+        } else {
+          console.log('Session drill updated successfully');
+        }
+      } catch (err) {
+        console.error('Failed to update session drill:', err);
+        Alert.alert('Warning', 'Variant created but failed to update session drill');
       }
+
+      navigation.navigate('DrillDetail', { drill: updatedDrill });
+    } else {
       navigation.goBack();
-    } catch (err) {
-      Alert.alert('Error', 'Network error, try again later');
     }
-  };
+  } catch (err) {
+    console.error('Network error during submit:', err);
+    Alert.alert('Error', 'Network error, try again later');
+  }
+};
+
 
   const renderCard = () => {
     switch (currentCard) {

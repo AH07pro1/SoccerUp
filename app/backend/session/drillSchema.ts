@@ -31,7 +31,8 @@ const drillSchema = z.object({
   createdByUser: z.boolean().default(false),
   restTime: z.number()
   .int("Rest time must be an integer")
-  .nonnegative("Rest time can't be negative")
+  .nonnegative("Rest time can't be negative"),
+  basedOnName: z.string().optional() // Optional field for variants
 
 });
 export default drillSchema;
