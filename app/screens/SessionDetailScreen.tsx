@@ -118,25 +118,40 @@ export default function SessionDetailScreen({ route, navigation }: any) {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-3xl font-bold text-green-700">{session.sessionName}</Text>
-          <View className="flex-row space-x-3">
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate('CreateSession', { session, isEditMode: true })
-              }
-              className="bg-yellow-400 px-4 py-2 rounded-lg"
-            >
-              <Text className="text-white font-semibold">Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleDelete}
-              className="bg-red-600 px-4 py-2 rounded-lg"
-            >
-              <Text className="text-white font-semibold">Delete</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+
+
+  <View className="mb-6">
+  {/* Session Title */}
+  <Text className="text-3xl font-extrabold text-green-800 mb-2">
+    {session.sessionName}
+  </Text>
+
+  {/* Action Buttons */}
+  <View className="flex-row mt-2">
+  <TouchableOpacity
+    onPress={() =>
+      navigation.navigate('CreateSession', { session, isEditMode: true })
+    }
+    className="flex-row items-center space-x-2 bg-yellow-400 px-4 py-2 rounded-full shadow-md active:opacity-80"
+  >
+    <Ionicons name="create-outline" size={18} color="white" />
+    <Text className="text-white font-semibold">Edit</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    onPress={handleDelete}
+    className="ml-5 flex-row items-center space-x-2 bg-red-600 px-4 py-2 rounded-full shadow-md active:opacity-80"
+  >
+    <Ionicons name="trash-outline" size={18} color="white" />
+    <Text className="text-white font-semibold">Delete</Text>
+  </TouchableOpacity>
+</View>
+
+
+</View>
+
+
+
 
         <View className="mb-4">
           <Text className="text-lg font-semibold text-gray-800 mb-1">🗓 Scheduled For</Text>

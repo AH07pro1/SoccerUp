@@ -61,26 +61,23 @@ export default function DrillDetailScreen({ route, navigation }: any) {
   };
  useFocusEffect(
   useCallback(() => {
+    const fetchDrill = async () => {
+      try {
+        const res = await fetch(`http://192.168.2.19:3000/api/drill/${drillId}`);
+        if (!res.ok) throw new Error('Failed to fetch drill');
+        const data = await res.json();
+        setDrill(data);
+      } catch (err) {
+        Alert.alert('Error', 'Could not load updated drill.');
+      }
+    };
 
-    const drillFromParams = route.params?.drill;
-
-    if (drillFromParams) {
-      setDrill(drillFromParams);
-    } else if (drillId) {
-      const fetchDrill = async () => {
-        try {
-          const res = await fetch(`http://192.168.2.19:3000/api/drill/${drillId}`);
-          if (!res.ok) throw new Error('Failed to fetch drill');
-          const data = await res.json();
-          setDrill(data);
-        } catch (err) {
-          Alert.alert('Error', 'Could not load updated drill.');
-        }
-      };
+    if (drillId) {
       fetchDrill();
     }
-  }, [route.params?.drill, drillId])
+  }, [drillId])
 );
+
 
 
   const handleDelete = () => {
