@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   Alert,
-  Pressable,
   Vibration,
   Platform,
 } from 'react-native';
@@ -41,9 +40,14 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
 
   const [currentDrillIndex, setCurrentDrillIndex] = useState(0);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
-  const [secondsElapsed, setSecondsElapsed] = useState(0); // Track elapsed seconds on current segment
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isResting, setIsResting] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(3);
+  const [hasStartedFirstDrill, setHasStartedFirstDrill] = useState(false);
+  const currentDrillDuration = useRef<number>(0);
+  const isResumingRef = useRef(false);
+
 
   const [voiceOnlyMode, setVoiceOnlyMode] = useState(false);
   const [lockScreenMode, setLockScreenMode] = useState(false);
@@ -66,28 +70,87 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
     drills.reduce((sum, d) => sum + d.duration * 60 + d.restTime, 0) -
     (drills.at(-1)?.restTime || 0);
 
+
+    useEffect(() => {
+    const beforeRemoveListener = navigation.addListener('beforeRemove', (e: { preventDefault: () => void; data: { action: any } }) => {
+      // Prevent default behavior of leaving the screen
+      e.preventDefault();
+
+      Alert.alert(
+        'Leave Session?',
+        'Are you sure you want to leave the session? Your progress will be lost.',
+        [
+          { text: 'Cancel', style: 'cancel', onPress: () => {} },
+          {
+            text: 'Leave',
+            style: 'destructive',
+            onPress: () => {
+              // Remove listener and then navigate
+              navigation.dispatch(e.data.action);
+            },
+          },
+        ],
+        { cancelable: true }
+      );
+    });
+
+    // Clean up the listener when component unmounts
+    return () => {
+      navigation.removeListener('beforeRemove', beforeRemoveListener);
+    };
+  }, [navigation]);
+
+
+  // Countdown on mount
   useEffect(() => {
-    // Start immediately (no preview countdown)
-    if (drills.length > 0) startDrill(drills[0].duration * 60);
+    if (drills.length === 0) return;
+
+    const countdownValues = [3, 2, 1, 'Go!'];
+    let index = 0;
+
+    const startCountdown = () => {
+      if (index >= countdownValues.length) {
+        setCountdown(null);
+        setHasStartedFirstDrill(true);
+        Speech.speak(`Start drill: ${drills[0]?.drillName}`);
+        startDrill(drills[0].duration * 60);
+        return;
+      }
+
+      const value = countdownValues[index];
+      setCountdown(typeof value === 'number' ? value : 0);
+      Speech.speak(value.toString());
+
+      index++;
+      setTimeout(startCountdown, 1200);
+    };
+
+    Speech.speak('Get ready');
+    setCountdown(3);
+    setTimeout(startCountdown, 1500);
   }, []);
 
+  // Cleanup interval on unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
-  useEffect(() => {
-  if (drills.length === 0) return;
+  // Auto start drill/rest when state changes, but skip if paused or before countdown ends
+useEffect(() => {
+  if (drills.length === 0 || isPaused) return;
+  if (!hasStartedFirstDrill && currentDrillIndex === 0 && !isResting) return;
 
-  if (isPaused) return; // don't start timer if paused
-
-  if (isResting) {
-    startRest();
-  } else {
-    startDrill(drills[currentDrillIndex].duration * 60);
+  if (isResumingRef.current) {
+    // We are resuming, so don't restart drill/rest timers here
+    isResumingRef.current = false;
+    return;
   }
-}, [currentDrillIndex, isResting, isPaused]);
+
+  if (isResting) startRest();
+  else startDrill(drills[currentDrillIndex].duration * 60);
+}, [currentDrillIndex, isResting, isPaused, hasStartedFirstDrill]);
 
   const tickGlobalProgress = () => {
     globalProgress.value = withTiming(
@@ -97,77 +160,125 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
   };
 
   const vibrateSafe = (duration: number | number[]) => {
-    // Vibrate only if supported and on device (not iOS simulator)
-    if (Platform.OS === 'android' || (Platform.OS === 'ios' && !isSimulator())) {
+    if (Platform.OS === 'android') {
       Vibration.vibrate(duration);
     }
   };
 
-  const isSimulator = () => {
-    // Very basic simulator check, can be improved
-    return Platform.OS === 'ios' && !('vibrate' in navigator);
-  };
-
-  const startDrill = (duration: number) => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    setIsResting(false);
-    setSecondsRemaining(duration);
-    setSecondsElapsed(0);
-
-    progress.value = 0;
-
-    if (!voiceOnlyMode) {
-      progress.value = withTiming(1, {
-        duration: duration * 1000,
-        easing: Easing.linear,
-      });
+  // Clear interval helper
+  const clearTimer = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-
-    vibrateSafe(300); // Vibration on drill start
-     Speech.stop();
-    Speech.speak(`Start drill: ${drills[currentDrillIndex]?.drillName}`);
-
-    intervalRef.current = setInterval(() => {
-      setSecondsRemaining((prev) => {
-        const next = prev - 1;
-        tickGlobalProgress();
-
-        setSecondsElapsed((elapsed) => elapsed + 1);
-
-        if (next === Math.floor(duration / 2)) {
-          Speech.speak("You're halfway there!");
-        }
-
-        if (next === 10) {
-          Speech.speak("10 seconds left!");
-        }
-
-       if (next <= 0) {
-  clearInterval(intervalRef.current!);
-
-  const nextIndex = currentDrillIndex + 1;
-  if (nextIndex < drills.length) {
-    setCurrentDrillIndex(nextIndex);
-    setIsResting(true); // move to rest
-  } else {
-    endSession();
-  }
-  return 0;
-}
-
-
-        return next;
-      });
-    }, 1000);
   };
 
+  // Start a new drill timer from full duration
+  const startDrill = (duration: number) => {
+  clearTimer();
+
+  currentDrillDuration.current = duration; // store total seconds for this drill
+
+  setIsResting(false);
+  setSecondsRemaining(duration);
+  setSecondsElapsed(0);
+  progress.value = 0;
+
+  if (!voiceOnlyMode) {
+    progress.value = withTiming(1, {
+      duration: duration * 1000,
+      easing: Easing.linear,
+    });
+  }
+
+  vibrateSafe(300);
+  Speech.stop();
+  Speech.speak(`Start drill: ${drills[currentDrillIndex]?.drillName}`);
+
+  intervalRef.current = setInterval(() => {
+    setSecondsRemaining((prev) => {
+      const next = prev - 1;
+      tickGlobalProgress();
+      setSecondsElapsed((elapsed) => elapsed + 1);
+
+      if (next === Math.floor(duration / 2)) {
+        Speech.speak("You're halfway there!");
+      }
+      if (next === 10) {
+        Speech.speak("10 seconds left!");
+      }
+
+      if (next <= 0) {
+        clearTimer();
+        const nextIndex = currentDrillIndex + 1;
+        if (nextIndex < drills.length) {
+          setCurrentDrillIndex(nextIndex);
+          setIsResting(true);
+        } else {
+          endSession();
+        }
+        return 0;
+      }
+      return next;
+    });
+  }, 1000);
+};
+
+
+  const resumeDrill = () => {
+  clearTimer();
+
+  if (!voiceOnlyMode) {
+    const elapsed = currentDrillDuration.current - secondsRemaining;
+    const remainingDurationMs = secondsRemaining * 1000;
+
+    // Set progress value to current progress fraction immediately (freeze state)
+    progress.value = elapsed / currentDrillDuration.current;
+
+    // Animate from current progress to 1 over remaining time
+    progress.value = withTiming(1, {
+      duration: remainingDurationMs,
+      easing: Easing.linear,
+    });
+  }
+
+  intervalRef.current = setInterval(() => {
+    setSecondsRemaining((prev) => {
+      const next = prev - 1;
+      tickGlobalProgress();
+      setSecondsElapsed((elapsed) => elapsed + 1);
+
+      if (next === 10) Speech.speak("10 seconds left!");
+
+      if (next <= 0) {
+        clearTimer();
+        const nextIndex = currentDrillIndex + 1;
+        if (nextIndex < drills.length) {
+          setCurrentDrillIndex(nextIndex);
+          setIsResting(true);
+        } else {
+          endSession();
+        }
+        return 0;
+      }
+      return next;
+    });
+  }, 1000);
+};
+
+
+
+
+
+  // Start a new rest timer from full rest time
   const startRest = () => {
+    clearTimer();
+
     const restTime = drills[currentDrillIndex]?.restTime || 0;
 
     setIsResting(true);
     setSecondsRemaining(restTime);
     setSecondsElapsed(0);
-
     progress.value = 0;
 
     if (!voiceOnlyMode) {
@@ -177,7 +288,7 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
       });
     }
 
-    vibrateSafe(200); // Vibration on rest start
+    vibrateSafe(200);
     Speech.stop();
     Speech.speak("Rest now");
     const nextDrillName = drills[currentDrillIndex + 1]?.drillName;
@@ -189,28 +300,51 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
       setSecondsRemaining((prev) => {
         const next = prev - 1;
         tickGlobalProgress();
-
         setSecondsElapsed((elapsed) => elapsed + 1);
 
         if (next <= 0) {
-  clearInterval(intervalRef.current!);
+          clearTimer();
+          if (currentDrillIndex < drills.length) {
+            setIsResting(false);
+          } else {
+            endSession();
+          }
+          return 0;
+        }
+        return next;
+      });
+    }, 1000);
+  };
 
-  if (currentDrillIndex < drills.length) {
-    setIsResting(false);
-    // startDrill will be triggered by useEffect on [currentDrillIndex, isResting]
-  } else {
-    endSession();
-  }
-  return 0;
-}
+  // Resume rest from paused state
+  const resumeRest = () => {
+    clearTimer();
 
+    if (!voiceOnlyMode) {
+      progress.value = withTiming(1, {
+        duration: secondsRemaining * 1000,
+        easing: Easing.linear,
+      });
+    }
+
+    intervalRef.current = setInterval(() => {
+      setSecondsRemaining((prev) => {
+        const next = prev - 1;
+        tickGlobalProgress();
+        setSecondsElapsed((elapsed) => elapsed + 1);
+
+        if (next <= 0) {
+          clearTimer();
+          setIsResting(false);
+          return 0;
+        }
         return next;
       });
     }, 1000);
   };
 
   const endSession = () => {
-    vibrateSafe([100, 100, 300]); // Vibration pattern on session end
+    vibrateSafe([100, 100, 300]);
     Speech.speak('Session complete');
     navigation.replace('SessionComplete', {
       totalDrills: drills.length,
@@ -220,19 +354,28 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
   };
 
   const handlePauseResume = () => {
-    if (lockScreenMode) {
-      Speech.speak('Screen is locked. Unlock to interact.');
-      return;
-    }
-    if (isPaused) {
-      if (isResting) startRest();
-      else startDrill(secondsRemaining);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      progress.value = withTiming(progress.value, { duration: 0 });
-    }
-    setIsPaused((prev) => !prev);
-  };
+  if (lockScreenMode) {
+    Speech.speak('Screen is locked. Unlock to interact.');
+    return;
+  }
+
+  if (isPaused) {
+    // Resume timer (drill or rest)
+    isResumingRef.current = true; // tell effect we are resuming
+    if (isResting) resumeRest();
+    else resumeDrill();
+  } else {
+    // Pause timer
+    clearTimer();
+    // Freeze animation progress (stop animation but keep value)
+    progress.value = progress.value;
+  }
+
+  setIsPaused((prev) => !prev);
+};
+
+
+
 
   const handleSkip = () => {
     if (lockScreenMode) {
@@ -246,27 +389,22 @@ export default function SessionPlayerScreen({ route, navigation }: any) {
       return;
     }
 
-   if (isResting) {
-  Alert.alert('Skip Rest?', 'Skip current rest period?', [
-    { text: 'Cancel', style: 'cancel' },
-    {
-      text: 'Yes',
-      onPress: () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-
-        vibrateSafe(150);
-        progress.value = withTiming(1, { duration: 200 });
-
-        setIsResting(false);
-        setSecondsElapsed(0);
-
-        // DO NOT manually increase currentDrillIndex here,
-        // the effect above will handle starting the drill with the current drill index
-      },
-    },
-  ]);
-}
-else {
+    if (isResting) {
+      Alert.alert('Skip Rest?', 'Skip current rest period?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes',
+          onPress: () => {
+            clearTimer();
+            vibrateSafe(150);
+            progress.value = withTiming(1, { duration: 200 });
+            setIsResting(false);
+            setSecondsElapsed(0);
+            // useEffect will auto start drill on isResting=false
+          },
+        },
+      ]);
+    } else {
       const drillDurationSeconds = drills[currentDrillIndex].duration * 60;
       if (secondsElapsed < drillDurationSeconds / 2) {
         Speech.speak('You need to complete at least 50% of the drill before skipping.');
@@ -282,11 +420,9 @@ else {
         {
           text: 'Yes',
           onPress: () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
+            clearTimer();
+            vibrateSafe(150);
 
-            vibrateSafe(150); // Vibration on skip drill
-
-            // Calculate remaining drill + rest time for global progress
             const restTime = drills[currentDrillIndex]?.restTime || 0;
             const remainingDrillSeconds = drillDurationSeconds - secondsElapsed;
 
@@ -301,7 +437,7 @@ else {
               const nextIndex = currentDrillIndex + 1;
               if (nextIndex < drills.length) {
                 setCurrentDrillIndex(nextIndex);
-                startRest();
+                setIsResting(true);
               } else {
                 endSession();
               }
@@ -331,6 +467,16 @@ else {
         >
           <Text className="text-white font-semibold">Go Back</Text>
         </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (countdown !== null) {
+    return (
+      <View className="flex-1 justify-center items-center bg-white">
+        <Text className="text-7xl font-extrabold text-green-600">
+          {countdown === 0 ? 'Go!' : countdown}
+        </Text>
       </View>
     );
   }
@@ -477,23 +623,21 @@ else {
       </View>
 
       {/* Overlay to disable touches in lock screen mode */}
-     {lockScreenMode && (
-  <View className="absolute inset-0 bg-black/40 justify-center items-center">
-    <Text className="text-white text-lg mb-4">Screen is locked</Text>
-    <TouchableOpacity
-      onPress={() => {
-  Vibration.vibrate(100);
-  Speech.speak('Screen unlocked');
-  setLockScreenMode(false);
-}}
-
-      className="bg-white px-6 py-3 rounded-lg"
-    >
-      <Text className="text-gray-800 font-semibold">Unlock</Text>
-    </TouchableOpacity>
-  </View>
-)}
-
+      {lockScreenMode && (
+        <View className="absolute inset-0 bg-black/40 justify-center items-center">
+          <Text className="text-white text-lg mb-4">Screen is locked</Text>
+          <TouchableOpacity
+            onPress={() => {
+              Vibration.vibrate(100);
+              Speech.speak('Screen unlocked');
+              setLockScreenMode(false);
+            }}
+            className="bg-white px-6 py-3 rounded-lg"
+          >
+            <Text className="text-gray-800 font-semibold">Unlock</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </>
   );
 }

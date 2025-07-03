@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  Linking,
-  Dimensions,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { WebView } from 'react-native-webview';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
 
 type Drill = {
   id: number;
@@ -28,16 +26,12 @@ type Drill = {
   basedOnName?: string;
 };
 
-
-
 export default function DrillDetailScreen({ route, navigation }: any) {
   const screenWidth = Dimensions.get('window').width;
-  const [drill, setDrill] = useState<Drill | null>(null);
   const drillId = route.params?.drill?.id;
-  const { drill: intiialDrill, sessionId, onVariantCreated } = route.params;
 
-
-
+  const [drill, setDrill] = useState<Drill | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const isYouTubeLink =
     drill?.visualReference?.includes('youtube.com') ||
@@ -59,26 +53,28 @@ export default function DrillDetailScreen({ route, navigation }: any) {
       ? `https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1`
       : url;
   };
- useFocusEffect(
-  useCallback(() => {
-    const fetchDrill = async () => {
-      try {
-        const res = await fetch(`http://192.168.2.19:3000/api/drill/${drillId}`);
-        if (!res.ok) throw new Error('Failed to fetch drill');
-        const data = await res.json();
-        setDrill(data);
-      } catch (err) {
-        Alert.alert('Error', 'Could not load updated drill.');
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchDrill = async () => {
+        setIsLoading(true);
+        try {
+          const res = await fetch(`http://192.168.2.19:3000/api/drill/${drillId}`);
+          if (!res.ok) throw new Error('Failed to fetch drill');
+          const data = await res.json();
+          setDrill(data);
+        } catch (err) {
+          Alert.alert('Error', 'Could not load updated drill.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      if (drillId) {
+        fetchDrill();
       }
-    };
-
-    if (drillId) {
-      fetchDrill();
-    }
-  }, [drillId])
-);
-
-
+    }, [drillId])
+  );
 
   const handleDelete = () => {
     Alert.alert(
@@ -111,120 +107,136 @@ export default function DrillDetailScreen({ route, navigation }: any) {
     );
   };
 
+  if (isLoading || !drill) {
+    return (
+      <View className="flex-1 justify-center items-center bg-white">
+        <Text className="text-gray-600 text-base">Loading drill info...</Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView className="flex-1 bg-white">
-      <View className="px-6 pt-6 pb-10">
-        {/* Top Action Row */}
-        <View className="flex-row justify-between items-center mb-3">
-          <Text className="text-3xl font-extrabold text-gray-900">
-            {drill?.drillName}
-          </Text>
+    <ScrollView className="flex-1 bg-white px-6 pt-6 pb-10">
+      {/* Header */}
+      <View className="flex-row justify-between items-start mb-3">
+  <Text
+    className="text-3xl font-extrabold text-gray-900 flex-1 max-w-[70%] pr-2"
+    numberOfLines={2}
+  >
+    {drill.drillName}
+  </Text>
 
-          <View className="flex-row space-x-3">
-            <TouchableOpacity
-              onPress={() =>
-  navigation.navigate('CreateDrill', {
-  drill,
-  isEditMode: true,
-  isSystemDrill: !drill?.createdByUser,
-  sessionId: route.params?.sessionId, // Pass sessionId here
-  onDrillUpdated: (updatedDrill: Drill) => {
-    setDrill(updatedDrill);
-    if (route.params?.onVariantCreated) {
-      route.params.onVariantCreated(updatedDrill);
-    }
-  },
-})
+  <View className="flex-row space-x-3 ml-2">
+    <TouchableOpacity
+      onPress={() =>
+        navigation.navigate('CreateDrill', {
+          drill,
+          isEditMode: true,
+          isSystemDrill: !drill?.createdByUser,
+          sessionId: route.params?.sessionId,
+          onDrillUpdated: (updatedDrill: Drill) => {
+            setDrill(updatedDrill);
+            if (route.params?.onVariantCreated) {
+              route.params.onVariantCreated(updatedDrill);
+            }
+          },
+        })
+      }
+      className="bg-yellow-400 px-3 py-2 rounded-lg"
+    >
+      <Text className="text-white font-semibold text-sm">Edit</Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={handleDelete}
+      className="bg-red-600 px-3 py-2 rounded-lg"
+    >
+      <Text className="text-white font-semibold text-sm">Delete</Text>
+    </TouchableOpacity>
+  </View>
+</View>
 
+
+     {/* Badges */}
+<View className="flex-row flex-wrap gap-x-3 gap-y-2 mb-6">
+  {drill.createdByUser && (
+    <View className="bg-blue-600 px-3 py-1.5 rounded-full">
+      <Text className="text-white text-sm font-bold flex-shrink-0">You</Text>
+    </View>
+  )}
+  {drill.basedOnName && (
+    <View className="bg-purple-600 px-3 py-1.5 rounded-full">
+      <Text className="text-white text-sm font-bold flex-shrink-0">Variant</Text>
+    </View>
+  )}
+</View>
+
+
+      {/* Info Card */}
+      <View className="bg-gray-100 rounded-2xl p-4 mb-8 space-y-2">
+        <InfoRow label="Duration" value={`${drill.duration} mins`} />
+        <InfoRow label="Sets" value={`${drill.numberOfSets}`} />
+        <InfoRow label="Reps" value={`${drill.numberOfReps}`} />
+        <InfoRow label="Category" value={drill.drillCategory} />
+        <InfoRow
+          label="Materials"
+          value={
+            drill.materials && drill.materials.length > 0
+              ? drill.materials.join(', ')
+              : 'None'
+          }
+        />
+      </View>
+
+      {/* Description */}
+      <Text className="text-lg font-semibold text-gray-900 mb-2">Description</Text>
+      <Text className="text-base text-gray-700 leading-relaxed mb-8">
+        {drill.description?.trim()
+          ? drill.description
+          : 'No description available for this drill.'}
+      </Text>
+
+      {/* Video */}
+      <Text className="text-lg font-semibold text-gray-900 mb-2">Video</Text>
+
+      {drill.visualReference ? (
+        isYouTubeLink ? (
+          <View
+            className="rounded-xl overflow-hidden mb-10"
+            style={{ width: screenWidth - 32, height: 200 }}
+          >
+            <WebView
+              source={{ uri: getYouTubeEmbedUrl(drill.visualReference) }}
+              allowsFullscreenVideo
+              javaScriptEnabled
+              domStorageEnabled
+            />
+          </View>
+        ) : player ? (
+          <View
+            className="rounded-xl overflow-hidden mb-10"
+            style={{ width: screenWidth - 32, height: 200 }}
+          >
+            <VideoView style={{ flex: 1 }} player={player} />
+          </View>
+        ) : (
+          <View className="bg-gray-200 h-48 rounded-xl justify-center items-center mb-10">
+            <Text className="text-gray-600">Loading video...</Text>
+          </View>
+        )
+      ) : (
+        <View className="bg-gray-200 h-48 rounded-xl justify-center items-center mb-10">
+          <Text className="text-gray-600">No video available</Text>
+        </View>
+      )}
+    </ScrollView>
+  );
 }
 
-              className="bg-yellow-400 px-4 py-2 rounded-lg"
-            >
-              <Text className="text-white font-semibold">Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleDelete}
-              className="bg-red-600 px-4 py-2 rounded-lg"
-            >
-              <Text className="text-white font-semibold">Delete</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {drill?.createdByUser && (
-          <Text className="bg-blue-600 text-white px-3 py-1 rounded-full self-start text-sm mb-4">
-            You Created This
-          </Text>
-        )}
-        {drill?.basedOnName && (
-  <Text className="bg-purple-600 text-white px-3 py-1 rounded-full self-start text-sm mb-4">
-    Variant of "{drill.basedOnName}"
-  </Text>
-)}
-
-
-        {/* Info Card */}
-        <View className="bg-gray-100 p-4 rounded-2xl mb-6 space-y-2">
-          <Text className="text-base text-gray-800">
-            <Text className="font-semibold">Duration:</Text> {drill?.duration} mins
-          </Text>
-          <Text className="text-base text-gray-800">
-            <Text className="font-semibold">Sets:</Text> {drill?.numberOfSets}
-          </Text>
-          <Text className="text-base text-gray-800">
-            <Text className="font-semibold">Reps:</Text> {drill?.numberOfReps}
-          </Text>
-          <Text className="text-base text-gray-800">
-            <Text className="font-semibold">Category:</Text> {drill?.drillCategory}
-          </Text>
-          <Text className="text-base text-gray-800">
-            <Text className="font-semibold">Materials:</Text>{' '}
-            {drill?.materials && drill.materials.length > 0 ? drill.materials.join(', ') : 'None'}
-          </Text>
-        </View>
-
-        {/* Description */}
-        <Text className="text-lg font-semibold text-gray-900 mb-2">Description</Text>
-        <Text className="text-base text-gray-700 leading-relaxed">
-          {drill?.description?.trim()
-            ? drill.description
-            : 'No description available for this drill.'}
-        </Text>
-
-        {/* Video */}
-        <Text className="text-lg font-semibold text-gray-900 mt-8 mb-2">Video</Text>
-
-        {drill?.visualReference ? (
-          isYouTubeLink ? (
-            <View
-              className="rounded-xl overflow-hidden"
-              style={{ width: screenWidth - 32, height: 200 }}
-            >
-              <WebView
-                source={{ uri: getYouTubeEmbedUrl(drill.visualReference) }}
-                allowsFullscreenVideo
-                javaScriptEnabled
-                domStorageEnabled
-              />
-            </View>
-          ) : player ? (
-            <View
-              className="rounded-xl overflow-hidden"
-              style={{ width: screenWidth - 32, height: 200 }}
-            >
-              <VideoView style={{ flex: 1 }} player={player} />
-            </View>
-          ) : (
-            <View className="bg-gray-200 h-48 rounded-xl justify-center items-center">
-              <Text className="text-gray-600">Loading video...</Text>
-            </View>
-          )
-        ) : (
-          <View className="bg-gray-200 h-48 rounded-xl justify-center items-center">
-            <Text className="text-gray-600">No video available</Text>
-          </View>
-        )}
-      </View>
-    </ScrollView>
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="flex-row justify-between border-b border-gray-300 py-1">
+      <Text className="text-gray-700 font-semibold text-base">{label}</Text>
+      <Text className="text-gray-900 text-base">{value}</Text>
+    </View>
   );
 }
